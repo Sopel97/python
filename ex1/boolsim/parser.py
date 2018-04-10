@@ -108,7 +108,9 @@ def try_read(expr_str, pos, to_read):
 
 def try_read_symbol(expr_str, pos):
     start = pos
-    while pos < len(expr_str) and expr_str[pos].isalpha():
+    if pos < len(expr_str) and expr_str[pos].isalpha():
+        pos += 1
+    while pos < len(expr_str) and (expr_str[pos].isalpha() or expr_str[pos].isdigit()):
         pos += 1
 
     if pos > start:

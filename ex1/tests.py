@@ -81,7 +81,7 @@ def main():
         new_exprs = set()
         for e in all_exprs:
             for to_match, to_apply in temp_ruleset.permuting_rules:
-                new_exprs.update(e.apply_pattern_recursively(to_match, to_apply))
+                new_exprs.update(e.apply_pattern_recursively_to_all(to_match, to_apply))
         all_exprs = new_exprs
 
     print(all_exprs)
@@ -113,6 +113,7 @@ def main():
     test('!((A^B=>C|(A&B))&(C|(A&B)=>A^B)=>!((A^B=>(C|A)&(C|B))&(C|(A&B)=>A^B)))', 'A^B=C|(A&B)')
     test('(!a&((b|c)&d))|(!((c|b)&d)&a)', 'a^(b|c&d)')
     test('A&B|C&D|E&F|G&H', 'A&B|C&D|E&F|G&H')
+    test('A1A1&B00B2', 'A1A1&B00B2')
     # '''
 
     #print(CnfSimplifier(parse_expression('(!((a|b)&(((c|d)&(e&f))|((c|d)&(e&f))))&!(!A&!B|!C|!D|!E))|(((a|b)&(((c|d)&(e&f))|((c|d)&(e&f))))&(!A&!B|!C|!D|!E))')).best_expr())
