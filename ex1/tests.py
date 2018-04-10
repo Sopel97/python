@@ -87,6 +87,15 @@ def main():
     print(all_exprs)
     # '''
 
+    '''
+    parse_expression('!!!')
+    parse_expression('((A&B)')
+    parse_expression('A&B)')
+    parse_expression('A&')
+    parse_expression('&A')
+    parse_expression('A_')
+    '''
+
     #'''
     test('(a|b)&(((c|d)&(e&f))|((c|d)&(e&f)))', '(a|b)&((c|d)&(e&f))')
     test('!a|b', 'a>b')

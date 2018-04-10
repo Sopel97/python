@@ -28,7 +28,8 @@ class CloseParen:
 
 
 class InvalidExpression(Exception):
-    pass
+    def __init__(self, message):
+        super().__init__(message)
 
 unary_operators = [
     ('!', Negation),
@@ -160,7 +161,7 @@ def tokenize(expr_str):
             tokens += [Token(TokenType.PAREN_CLOSE, CloseParen(token))]
             continue
 
-        raise InvalidExpression()
+        raise InvalidExpression('Unexpected character `{0}` at position {1}.'.format(expr_str[current_pos], current_pos))
 
     return tokens
 
@@ -175,13 +176,13 @@ def infix_to_postfix(tokens):
         nonlocal operator_stack
 
         if not operator_stack:
-            raise InvalidExpression()
+            raise InvalidExpression('Cannot pop operator')
 
         op = operator_stack.pop()
 
         if op.type == TokenType.BINARY_OP:
             if virtual_operand_count < 1:
-                raise InvalidExpression()
+                raise InvalidExpression('Too few operands for binary operator.')
             virtual_operand_count -= 1 # take 2, make 1
 
         return op
@@ -210,7 +211,7 @@ def infix_to_postfix(tokens):
                 postfix += [pop_operator()]
 
             if not finished_on_paren_open:
-                raise InvalidExpression()
+                raise InvalidExpression('Cannot match opening `(` in the expression.')
 
             continue
 
@@ -222,12 +223,12 @@ def infix_to_postfix(tokens):
         op = pop_operator()
 
         if op.type == TokenType.PAREN_OPEN:
-            raise InvalidExpression()
+            raise InvalidExpression('Too many openning `(` in the expression.')
 
         postfix += [op]
 
     if virtual_operand_count != 1:
-        raise InvalidExpression()
+        raise InvalidExpression('Too few operands in the expression.')
 
     return postfix
 
@@ -243,7 +244,7 @@ def parse_expression(expr_str):
 
         if token.type == TokenType.UNARY_OP:
             if len(operand_stack) < 1:
-                raise InvalidExpression()
+                raise InvalidExpression('Too few operands for unary operator.')
 
             arg = operand_stack.pop()
             operand_stack += [token.token(arg)]
@@ -251,13 +252,13 @@ def parse_expression(expr_str):
 
         if token.type == TokenType.BINARY_OP:
             if len(operand_stack) < 2:
-                raise InvalidExpression()
+                raise InvalidExpression('Too few operands for binary operator.')
 
             rhs = operand_stack.pop()
             lhs = operand_stack.pop()
             operand_stack += [token.token(lhs, rhs)]
 
     if len(operand_stack) != 1:
-        raise InvalidExpression()
+        raise InvalidExpression('Expression doesn\'t evaluate to a single value')
 
     return operand_stack[0]
