@@ -87,8 +87,6 @@ def main():
     print(all_exprs)
     # '''
 
-    print(repr(parse_expression('A|(B&C)=D>!A&B|(C^D)&True')))
-
     #'''
     test('(a|b)&(((c|d)&(e&f))|((c|d)&(e&f)))', '(a|b)&((c|d)&(e&f))')
     test('!a|b', 'a>b')
