@@ -1,0 +1,1 @@
+Projects of Tomasz Sobczyk for Python class on AGH University of Science.
