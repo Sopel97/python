@@ -50,6 +50,8 @@ def add_if_no_conflict(d, key, value):
 
 
 class Expression:
+    __slots__ = []
+
     def get_paths_to_some_matches(self, pattern):
         all_paths = []
         self.gather_paths_to_some_matches(pattern, all_paths, [])
@@ -99,6 +101,8 @@ class Expression:
 
 class Constant(Expression):
     self_complexity = -1
+
+    __slots__ = '_value', '_complexity', '_hash'
 
     def __init__(self, value):
         self._value = value
@@ -192,6 +196,8 @@ class Constant(Expression):
 class Symbol(Expression):
     self_complexity = 0
 
+    __slots__ = '_name', '_complexity', '_hash'
+
     def __init__(self, name):
         self._name = name
         self._complexity = self.__compute_complexity();
@@ -282,6 +288,8 @@ class UnaryOperator(Expression):
             yield e
         yield self
 
+    __slots__ = '_arg', '_complexity', '_hash'
+
     def __init__(self, arg):
         self._arg = arg
         self._complexity = self.__compute_complexity();
@@ -366,6 +374,8 @@ class BinaryOperator(Expression):
         for e in self.rhs:
             yield e
         yield self
+
+    __slots__ = '_lhs', '_rhs', '_complexity', '_hash'
 
     def __init__(self, lhs, rhs):
         self._lhs = lhs
