@@ -87,6 +87,8 @@ def main():
     print(all_exprs)
     # '''
 
+    print(repr(parse_expression('A|(B&C)=D>!A&B|(C^D)&True')))
+
     #'''
     test('(a|b)&(((c|d)&(e&f))|((c|d)&(e&f)))', '(a|b)&((c|d)&(e&f))')
     test('!a|b', 'a>b')
@@ -119,8 +121,8 @@ def main():
 
     #print(Scrambler(scrambling_ruleset, parse_expression('A^B=C|(A&B)')).step(3).random_expr())
 
-    '''
-    for r in ruleset.reducing_rules:
+    #'''
+    for r in full_simplification_ruleset.reducing_rules:
         if not are_equal_by_evaluation(r[0], r[1]):
             print(str(r[0]) + ' ' + str(r[1]) + ' wrong rule')
 

@@ -1,5 +1,7 @@
 from .util import *
 
+import textwrap
+
 def gather_symbols_from_expr(expr):
     return list({e.name for e in expr if type(e) == Symbol})
 
@@ -83,6 +85,18 @@ class Expression:
 
         return self.try_simplify_by_children_evaluation(lut)
 
+    def __repr__(self):
+        indentation = '    '
+        return ''.join(
+            [
+                'Type: {0}; Complexity: {1}; Children:\n'.format(self.__class__.__name__, self.complexity),
+                textwrap.indent('\n'.join(repr(e) for e in self.children()), indentation)
+            ]
+        )
+
+    def children(self):
+        return []
+
 class Constant(Expression):
     self_complexity = -1
 
@@ -109,7 +123,7 @@ class Constant(Expression):
         return str(self.value)
 
     def __repr__(self):
-        return repr(self.value)
+        return 'Constant: {0}'.format(self.value)
 
     def to_string(self, parent):
         return str(self.value)
@@ -201,7 +215,7 @@ class Symbol(Expression):
         return self.name
 
     def __repr__(self):
-        return repr(self.name)
+        return 'Symbol: {0}'.format(self.name)
 
     def to_string(self, parent):
         return self.name
@@ -341,6 +355,8 @@ class UnaryOperator(Expression):
     def __compute_hash(self):
         return hash((self._arg, type(self)))
 
+    def children(self):
+        return [self._arg]
 
 
 class BinaryOperator(Expression):
@@ -444,6 +460,9 @@ class BinaryOperator(Expression):
             else:
                 return self._rhs
 
+    def children(self):
+        return [self._lhs, self._rhs]
+
 class SymmetricBinaryOperator(BinaryOperator):
     # sorted by hash, to because order doesn't matter
     def __init__(self, lhs, rhs):
@@ -512,9 +531,6 @@ class Negation(UnaryOperator):
     def __str__(self):
         return self.to_string(None)
 
-    def __repr__(self):
-        return self.to_string(None)
-
     def to_string(self, parent):
         return ('(!{0})' if self.__uses_parens_inside(parent) else '!{0}').format(self.arg.to_string(Negation))
 
@@ -569,9 +585,6 @@ class Disjunction(SymmetricBinaryOperator):
         return self.lhs.evaluate(variables) or self.rhs.evaluate(variables)
 
     def __str__(self):
-        return self.to_string(None)
-
-    def __repr__(self):
         return self.to_string(None)
 
     def to_string(self, parent):
@@ -629,9 +642,6 @@ class ExclusiveDisjunction(SymmetricBinaryOperator):
         return self.lhs.evaluate(variables) != self.rhs.evaluate(variables)
 
     def __str__(self):
-        return self.to_string(None)
-
-    def __repr__(self):
         return self.to_string(None)
 
     def to_string(self, parent):
@@ -699,9 +709,6 @@ class Conjunction(SymmetricBinaryOperator):
     def __str__(self):
         return self.to_string(None)
 
-    def __repr__(self):
-        return self.to_string(None)
-
     def to_string(self, parent):
         this_precedence = Disjunction.precedence
         return ('({0}&{1})' if self.__uses_parens_inside(parent) else '{0}&{1}').format(self.lhs.to_string(Conjunction), self.rhs.to_string(Conjunction))
@@ -759,9 +766,6 @@ class Implication(BinaryOperator):
     def __str__(self):
         return self.to_string(None)
 
-    def __repr__(self):
-        return self.to_string(None)
-
     def to_string(self, parent):
         this_precedence = Disjunction.precedence
         return ('({0}=>{1})' if self.__uses_parens_inside(parent) else '{0}=>{1}').format(self.lhs.to_string(Implication), self.rhs.to_string(Implication))
@@ -815,9 +819,6 @@ class Equivalency(SymmetricBinaryOperator):
         return self.lhs.evaluate(variables) == self.rhs.evaluate(variables)
 
     def __str__(self):
-        return self.to_string(None)
-
-    def __repr__(self):
         return self.to_string(None)
 
     def to_string(self, parent):
