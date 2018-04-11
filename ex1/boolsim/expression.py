@@ -336,6 +336,15 @@ class Constant(Expression):
     self_complexity = -1
     """Complexity the node adds to the expression."""
 
+    _instances = dict()
+
+    def __new__(cls, value):
+        if value not in cls._instances:
+            instance = super().__new__(cls)
+            instance._initialized = False
+            cls._instances[value] = instance
+        return cls._instances[value]
+
     def __init__(self, value):
         """Initialize to a given value.
 
@@ -345,6 +354,10 @@ class Constant(Expression):
         Args:
             value (bool): Value to set the constant to.
         """
+        if self._initialized:
+            return
+        self._initialized = True
+
         self._value = value
         self._complexity = self.__compute_complexity()
         self._hash = self.__compute_hash()
@@ -528,7 +541,20 @@ class Constant(Expression):
 class Symbol(Expression):
     self_complexity = 0
 
+    _instances = dict()
+
+    def __new__(cls, name):
+        if name not in cls._instances:
+            instance = super().__new__(cls)
+            instance._initialized = False
+            cls._instances[name] = instance
+        return cls._instances[name]
+
     def __init__(self, name):
+        if self._initialized:
+            return
+        self._initialized = True
+
         self._name = name
         self._complexity = self.__compute_complexity();
         self._hash = self.__compute_hash()
