@@ -125,6 +125,12 @@ def tokenize(expr_str):
 
     current_pos = 0
     while current_pos < len(expr_str):
+
+        while current_pos < len(expr_str) and expr_str[current_pos].isspace():
+            current_pos += 1
+        if current_pos == len(expr_str):
+            break;
+
         token, length = try_read_constant(expr_str, current_pos)
         if token:
             current_pos += length
@@ -228,7 +234,7 @@ def infix_to_postfix(tokens):
         postfix += [op]
 
     if virtual_operand_count != 1:
-        raise InvalidExpression('Too few operands in the expression.')
+        raise InvalidExpression('Too few or too many operands in the expression.')
 
     return postfix
 

@@ -88,6 +88,8 @@ def main():
     # '''
 
     '''
+    print(parse_expression('   A A &    \t B   '))
+    print(parse_expression('   A &    \t B   '))
     parse_expression('!!!')
     parse_expression('((A&B)')
     parse_expression('A&B)')
