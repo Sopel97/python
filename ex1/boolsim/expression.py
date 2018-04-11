@@ -1,14 +1,65 @@
+"""Expression components and operations on them.
+
+This module provides definitions for all expression components such as
+constants, symbols (variables) and operators (as an expression with
+one or more children).
+Every class that is an expression in itself provides
+basic methods for recursive inspection, substitution and pattern
+application (for example for reduction of expressions).
+
+There exist some module-level functions to help with more general
+operations that can be perfomed on expressions, such as extraction
+of used symbols (variables), evaluation, and short-circuiting
+equality/truthness checks between expressions.
+"""
+
 from .util import *
 
 import textwrap
 
 def gather_symbols_from_expr(expr):
+    """Gather names of unique symbols in the expression.
+
+    Searches the expression recusively and remembers names of all
+    unique symbols encountered.
+
+    Args:
+        expr (Expression): The expression to gather symbols from.
+
+    Returns:
+        list of str: A list of names.
+    """
     return list({e.name for e in expr if type(e) == Symbol})
 
 def count_distinct_symbols(expr):
+    """Count how many distinct symbols are in the expression.
+
+    Effectively returns the length of a list returned by
+    gather_symbols_from_expr.
+
+    Args:
+        expr (Expression): The expression to count symbols in.
+
+    Returns:
+        int: Number of distinctly named symbols.
+    """
     return len(gather_symbols_from_expr(expr))
 
 def evaluates_to(expr, boolean):
+    """Check if the given expression evaluates to a given boolean.
+
+    Checks whether the given expression is equal to a given boolean for
+    all possible inputs (all possible combinations of symbols used by the
+    expression). It short-circuits, so it reports failure as soon as
+    possible.
+
+    Args:
+        expr (Expression): The expression to evaluate.
+        boolean (bool): The value to check against.
+
+    Returns:
+        bool: True on success, False on failure
+    """
     ids_to_symbols = gather_symbols_from_expr(expr)
     dim = len(ids_to_symbols)
     for i in range(pow2(dim)):
@@ -18,27 +69,120 @@ def evaluates_to(expr, boolean):
     return True
 
 def symbol_dict_from_index(ids_to_symbols, index):
-        return {ids_to_symbols[i] : bool(index[i]) for i in range(len(ids_to_symbols))}
+    """Convert a list of unnamed values to named values.
+
+    Given a bitfield it interprets the subsequent bits (starting from LSB)
+    as values to use for variables with names repectively from ids_to_symbols
+    list and forms a dictionary for them.
+    At most len(ids_to_symbols) variables is assigned.
+
+    Args:
+        ids_to_symbols (list of str): Subsequent variable names.
+        index (BoolVector): Bitfield storing values for every variable.
+
+    Returns:
+        dict of (str, bool): Variable names with values assigned to them.
+    """
+    return {ids_to_symbols[i] : bool(index[i]) for i in range(len(ids_to_symbols))}
 
 def evaluate_all(expr, ids_to_symbols):
+    """Evaluate given expression for all possible inputs.
+
+    Evaluates the given expression for each possible input, with the order
+    of variables as in ids_to_symbols.
+
+    Args:
+        expr (Expression): Expression to evaluate.
+        ids_to_symbols (list of str): Order of input variables by name.
+
+    Returns:
+        list of bool: All 2^n (where n = len(ids_to_symbols)) evaluations of the
+            expression in increasing order of input (000, 001, 010, ...)
+    """
     dim = len(ids_to_symbols)
     return [expr.evaluate(symbol_dict_from_index(ids_to_symbols, BoolVector(dim, i))) for i in range(pow2(dim))]
 
 def is_true_by_evaluation(expr):
+    """Check if the expression is always True.
+
+    Checks if the given expression evaluates to True for all possible
+    inputs. Uses evaluation.
+
+    Args:
+        expr (Expression): Expression to evaluate.
+
+    Returns:
+        bool: True if the expression is always True, false otherwise.
+    """
     return evaluates_to(expr, True)
 
 def is_false_by_evaluation(expr):
+    """Check if the expression is always False.
+
+    Checks if the given expression evaluates to False for all possible
+    inputs. Uses evaluation.
+
+    Args:
+        expr (Expression): Expression to evaluate.
+
+    Returns:
+        bool: True if the expression is always False, false otherwise.
+    """
     return evaluates_to(expr, False)
 
 def are_equal_by_evaluation(lhs, rhs):
+    """Check if given expressions are always equal.
+
+    Checks if the given expressions are equal for all possible
+    inputs. Ie. lhs <=> rhs is a tautology.
+    Uses evaluation.
+
+    Args:
+        lhs (Expression): The left hand side expression.
+        rhs (Expression): The right hand side expression.
+
+    Returns:
+        bool: True if the expressions are always equal, false otherwise.
+    """
     expr = Equivalency(lhs, rhs)
     return is_true_by_evaluation(expr)
 
 def are_opposite_by_evaluation(lhs, rhs):
+    """Check if given expressions are never equal.
+
+    Checks if the given expressions are different for all possible
+    inputs. Ie. lhs <=> rhs is never True.
+    Uses evaluation.
+
+    Args:
+        lhs (Expression): The left hand side expression.
+        rhs (Expression): The right hand side expression.
+
+    Returns:
+        bool: True if the expressions are never equal, false otherwise.
+    """
     expr = Equivalency(lhs, rhs)
     return is_false_by_evaluation(expr)
 
 def add_if_no_conflict(d, key, value):
+    """Try add value to a dictionary disallowing collisions.
+
+    Tries to add a given (key, value) pair into a dictionary while
+    ensuring that the already existing value won't change.
+    Requires the value to be an expression, and equality is checked
+    by evaluation of both sides.
+    If the value would change the already existing value under given key
+    to a different one then the dictionary remains unchanged.
+
+    Args:
+        d (dict): Dictionary to alter.
+        key: The key to insert under.
+        value (Expression): The expression to try insert.
+
+    Returns:
+        bool: True if the value was inserted or equal to the previous one,
+            False otherwise
+    """
     if key in d:
         # The check by truth tables is necessary, because we don't
         # permute expressions on leaves of simplifying rules.
@@ -49,27 +193,68 @@ def add_if_no_conflict(d, key, value):
     return True
 
 
+
 class Expression:
+    """Base class for all expression types.
+
+    Each class that represents an Expression HAS TO be immutable.
+    Allows for use as a persistent data structure.
+
+    Represents a base for all types that should have expression semantics.
+    For example values, operators.
+    Defines manipulation methods common for each expression.
+    """
+
     def get_paths_to_some_matches(self, pattern):
+        """Gather some paths to nodes that match against pattern.
+
+        For each node of the expression recursively gathers paths
+        (path is a (list, dict) pair consisting of a list of nodes
+        in the expression tree forming the path to the node that matched
+        against pattern and a dictionary with captures made during the match).
+        Only one succesful match is allowed per expression node.
+
+        Args:
+            pattern (Expression): Expression that serves as a pattern for matching.
+                Symbols in the pattern can capture subtrees of the expression.
+
+        Returns:
+            list of (list, dict): Paths to nodes with succesful matching as well
+                as respective captures made during matching.
+        """
         all_paths = []
         self.gather_paths_to_some_matches(pattern, all_paths, [])
         return all_paths
 
     def get_paths_to_all_matches(self, pattern):
+        """Gather all paths to nodes that match against pattern.
+
+        This method works the same way as get_paths_to_some_matches, but
+        it allows more successful matches from a single node to be
+        reported.
+        """
         all_paths = []
         self.gather_paths_to_all_matches(pattern, all_paths, [])
         return all_paths
 
-    def apply_pattern_recursively_to_all(self, to_match, to_apply):
-        resulting_expressions = set()
-
-        paths = self.get_paths_to_all_matches(to_match)
-        for path in paths:
-            resulting_expressions.add(self.apply_pattern_after_path(to_match, to_apply, path))
-
-        return resulting_expressions
-
     def apply_pattern_recursively_to_some(self, to_match, to_apply):
+        """Form new expressions with given substitutes.
+
+        Finds nodes that match to_match pattern and changes them
+        to expression of form to_apply with respective captures made
+        during matching.
+        Only one match is allowed per node.
+        Every substitution results in a separate expression.
+        Ie. Any resulting expression is exactly one substitution away from
+        the starting one.
+
+        Args:
+            to_match (Expression): Expression working as a pattern for matching nodes.
+            to_apply (Expression): Expression to substitute previously made captures into.
+
+        Returns:
+            list of Expression: New expressions with appropriate substitutions made.
+        """
         resulting_expressions = set()
 
         paths = self.get_paths_to_some_matches(to_match)
@@ -78,7 +263,36 @@ class Expression:
 
         return resulting_expressions
 
+    def apply_pattern_recursively_to_all(self, to_match, to_apply):
+        """Form new expressions with given substitutes.
+
+        This method works the same as apply_pattern_recursively_to_some,
+        but it allows multiple matches per node.
+        """
+        resulting_expressions = set()
+
+        paths = self.get_paths_to_all_matches(to_match)
+        for path in paths:
+            resulting_expressions.add(self.apply_pattern_after_path(to_match, to_apply, path))
+
+        return resulting_expressions
+
     def try_simplify_by_evaluation(self, lut):
+        """Try simplify the expression by evaluating subtrees.
+
+        Recursively tries to simplify the expression by evaluating children
+        and applying rules specific to the type of the subtree (operator).
+        Tries to use a lookup table of already simplified expressions with
+        few variables first.
+
+        Args:
+            lut: A callable that receives the expression and returns the same
+                expression or the equivalent simplest possible.
+
+        Returns:
+            Expression: Either a newly formed, simplified expression, an
+                expression from lookup table, or self if nothing can be done.
+        """
         simplified = lut(self)
         if not simplified is self:
             return simplified
@@ -86,6 +300,14 @@ class Expression:
         return self.try_simplify_by_children_evaluation(lut)
 
     def __repr__(self):
+        """Stringify into a tree form.
+
+        Converts the expression into a flattened tree, where children of
+        each expression node are indented. Also shows complexity of each node.
+
+        Returns:
+            str: Representaton
+        """
         indentation = '    '
         return ''.join(
             [
@@ -95,12 +317,34 @@ class Expression:
         )
 
     def children(self):
+        """Retrieve all children of the node.
+
+        Returns all children stored by the expression node.
+        Base expression doesn't have any children.
+
+        Returns:
+            list: All children expressions
+        """
         return []
 
 class Constant(Expression):
+    """A constant boolean expression.
+
+    Represents either True or False.
+    """
+
     self_complexity = -1
+    """Complexity the node adds to the expression."""
 
     def __init__(self, value):
+        """Initialize to a given value.
+
+        Sets the value and computes overall complexity and hash of
+        the whole expression.
+
+        Args:
+            value (bool): Value to set the constant to.
+        """
         self._value = value
         self._complexity = self.__compute_complexity()
         self._hash = self.__compute_hash()
@@ -110,13 +354,16 @@ class Constant(Expression):
 
     @property
     def value(self):
+        """The value stored in the constant."""
         return self._value
 
     @property
     def complexity(self):
+        """The complexity of the whole expression."""
         return self._complexity
 
     def evaluate(self, variables):
+        """Return boolean value of this constant."""
         return self._value
 
     def __str__(self):
@@ -126,6 +373,16 @@ class Constant(Expression):
         return 'Constant: {0}'.format(self.value)
 
     def to_string(self, parent):
+        """Stringifies with less parentheses.
+
+        Similar to __str__, but allows for omitting unneeded parentheses.
+
+        Args:
+            parent (class): The class of the parent of this expression node.
+
+        Returns:
+            str: __str__
+        """
         return str(self.value)
 
     def __eq__(self, other):
@@ -135,6 +392,21 @@ class Constant(Expression):
         return not self.__eq__(other)
 
     def try_match_once(self, pattern, captures):
+        """Try match the node with the given pattern.
+
+        Tries to match the node with expression given in pattern.
+        Updates captures if pattern is a symbol.
+        Can modify captures even on failure.
+        Does at most one match.
+
+        Args:
+            pattern (Expression): Expression to try match against.
+            captures (dict of (str, Expression)): captures from previous
+                matches of the same pattern.
+
+        Returns:
+            bool: True if the match was successful, False otherwise.
+        """
         if type(pattern) is Symbol:
             return add_if_no_conflict(captures, pattern.name, self)
         elif type(pattern) is Constant:
@@ -143,6 +415,24 @@ class Constant(Expression):
             return False
 
     def try_match_all(self, pattern, prev_captures):
+        """Try match the node with the given pattern.
+
+        Similar as try_match_ones, but is made in a form of a generator that
+        can report multiple matches per node.
+
+        prev_captures is never modified.
+
+        Args:
+            pattern (Expression): Expression to try match against.
+            prev_captures (dict of (str, Expression)): captures from previous
+                matches of the same pattern.
+
+        Yields:
+            (bool, (dict of (str, Expression)): A boolean indicating whether
+                the match was successful and a copy of captures made during
+                the matching.
+
+        """
         if type(pattern) is Symbol:
             captures = prev_captures.copy()
             yield (add_if_no_conflict(captures, pattern.name, self), captures)
@@ -153,10 +443,37 @@ class Constant(Expression):
             yield (False, prev_captures)
 
     def apply_pattern_after_path(self, to_match, to_apply, path_captures):
+        """Apply pattern after path with captures.
+
+        Traverses the expression according to the path and at the end
+        makes a substitution forming a new expression (unchanged parts
+        are reused due to immutability).
+
+        Args:
+            to_match (Expression): Expression to match. Currently unused.
+            to_apply (Expression): Expression to substitute into at the end.
+            path_captures ((list of Expression, dict of (str, Expression)) pair):
+                path to the matching node and captures to substitute into it.
+
+        Returns:
+            A new expression after substitution.
+        """
         captures = path_captures[1]
         return to_apply.substitute(captures)
 
     def gather_paths_to_some_matches(self, pattern, all_paths, current_path):
+        """Gather paths and captures to matching nodes.
+
+        See get_paths_to_some_matches.
+
+        Additional paths that are formed are appended to all_paths.
+        Maximum of one path per node.
+
+        Args:
+            pattern (Expression): Expression to match against.
+            all_paths (list of list of Expression): Already saved paths.
+            current_path (list of Expression): Path to the current node.
+        """
         captures = dict()
         if self.try_match_once(pattern, captures):
             current_path += [self]
@@ -164,6 +481,11 @@ class Constant(Expression):
             current_path.pop()
 
     def gather_paths_to_all_matches(self, pattern, all_paths, current_path):
+        """Gather paths and captures to matching nodes.
+
+        Same as gather_paths_to_some_matches, but can add multiple
+        paths (captures) for one node.
+        """
         current_path += [self]
 
         current_path_copy = current_path.copy()
@@ -174,6 +496,15 @@ class Constant(Expression):
         current_path.pop()
 
     def substitute(self, variables):
+        """Substitute variables into the expression.
+
+        Args:
+            variables (dict of (str, Expression)): Expressions to substitute
+                under certain variables (symbols).
+
+        Returns:
+            The newly formed expression, or self if no substitution was made.
+        """
         return self
 
     def __compute_complexity(self):
@@ -186,6 +517,11 @@ class Constant(Expression):
         return self._hash
 
     def try_simplify_by_children_evaluation(self, lut):
+        """Try to simplify the expression by evaluation of children
+
+        Evaluates children and tries to simplify according to rules
+        specific for the expression type (operator).
+        """
         return self
 
 
