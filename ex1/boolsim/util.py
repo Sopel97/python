@@ -27,6 +27,9 @@ class BoolVector:
     def increment_masked(self, mask):
         self.val = ((self.val | ~mask) + 1) & mask
 
+    def increment_masked_preserve_other(self, mask):
+        self.val = (self.val & ~mask) | (((self.val | ~mask) + 1) & mask)
+
     def __invert__(self):
         return BoolVector(self.dim, ~self.val & self.mask)
 

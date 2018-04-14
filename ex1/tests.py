@@ -19,7 +19,11 @@ def test(expr_str, expected_expr_str):
     print('[Base; Complexity: {0}]: {1}'.format(expr.complexity, expr))
     print('[Eval; Complexity: {0}]: {1}'.format(eval_simplified.complexity, eval_simplified))
     print('[CNF; Complexity: {0}]: {1}'.format(cnf.complexity, cnf))
+    cnf2 = Qmc.from_expression(expr).to_cnf()
+    print('[CNF2; Complexity: {0}]: {1}'.format(cnf2.complexity, cnf2))
     print('[DNF; Complexity: {0}]: {1}'.format(dnf.complexity, dnf))
+    dnf2 = Qmc.from_expression(expr).to_dnf()
+    print('[DNF2; Complexity: {0}]: {1}'.format(dnf2.complexity, dnf2))
 
     step_id = 1
     while not full_simplifier.is_completed:
@@ -98,7 +102,10 @@ def main():
     parse_expression('A_')
     '''
 
-    #'''
+    #print(Qmc(parse_expression('(B&!C&!D)|(A&!B)|(A&C)')).to_dnf())
+    print(Qmc(parse_expression('(B&!C&!D)|(A&!B)|(A&C)|D|E|F|G|H|I|J')).to_dnf())
+
+    '''
     test('(a|b)&(((c|d)&(e&f))|((c|d)&(e&f)))', '(a|b)&((c|d)&(e&f))')
     test('!a|b', 'a>b')
     test('!!!!X', 'X')
@@ -131,7 +138,7 @@ def main():
 
     #print(Scrambler(scrambling_ruleset, parse_expression('A^B=C|(A&B)')).step(3).random_expr())
 
-    #'''
+    '''
     for r in full_simplification_ruleset.reducing_rules:
         if not are_equal_by_evaluation(r[0], r[1]):
             print(str(r[0]) + ' ' + str(r[1]) + ' wrong rule')
