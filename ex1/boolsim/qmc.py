@@ -2,10 +2,16 @@ from .expression import *
 from .parser import *
 from .util import *
 
+from collections import defaultdict
+
 class Implicant:
+    __slots__ = ['minterm', 'wildcards', 'hash']
+
     def __init__(self, minterm, wildcards):
+        # it is assumed that where wildcards has a 1 bit then minterm has 0 bit
         self.minterm = minterm
         self.wildcards = wildcards
+        self.hash = hash((self.minterm, self.wildcards))
 
     def __repr__(self):
         return '({0}, {1})'.format(self.minterm, self.wildcards)
@@ -17,7 +23,7 @@ class Implicant:
         return not self.__eq__(other)
 
     def __hash__(self):
-        return hash((self.minterm, self.wildcards))
+        return self.hash
 
     def all_minterms(self, dim):
         i = BoolVector(dim, self.minterm)
@@ -25,9 +31,6 @@ class Implicant:
         for _ in range(num_minterms):
             yield i.val
             i.increment_masked_preserve_other(self.wildcards)
-
-def hamming_distance(lhs, rhs):
-    return popcnt(lhs ^ rhs)
 
 class Qmc:
     @classmethod
@@ -41,7 +44,8 @@ class Qmc:
 
     def _empty_table(self):
         dim = len(self._ids_to_symbols)
-        return [set() for _ in range(dim+1)]
+        # binned by wildcards
+        return [defaultdict(lambda: set()) for _ in range(dim+1)]
 
     def _gen_next_table(self, prev_table):
         dim = len(self._ids_to_symbols)
@@ -49,35 +53,39 @@ class Qmc:
 
         prime_implicants = set()
         combinable_implicants = set()
+
+        #print("MAIN LOOP START")
         # iterate all possible hamming weigths
         for hw in range(dim):
             # pairs of implicants i1, i2
-
-            for i1 in prev_table[hw]:
-                for i2 in prev_table[hw+1]:
-                    if i1.wildcards != i2.wildcards:
-                        continue
-
+            # they are further binned by wildcards
+            # so only compare those with the same wildcard
+            for w, i1s in prev_table[hw].items():
+                for i1 in i1s:
                     w = i1.wildcards
-                    # zero out bits under wildcard so they won't
-                    # be significant in calculating hamming distance
-                    i1s = i1.minterm & ~w
-                    i2s = i2.minterm & ~w
-                    if hamming_distance(i1s, i2s) == 1:
-                        # update wildcards with bit where they differ
-                        wildcards = (i1s ^ i2s) | w
-                        # we can take either i1s or i2s, doesnt matterr
-                        # since the difference is under a wildcard
-                        # but we have to zero out the differing bit so
-                        # it's easier to find repetitions
-                        next_table[hw].add(Implicant(i1s & ~wildcards, wildcards))
+                    i1m = i1.minterm
+                    for i2 in prev_table[hw+1][w]:
+                        # check if popcnt(x) == 1
+                        # with out storage choice it is guaranteed that at i1 and i2 are different
+                        # so x will never be 0
+                        # So amounts to just checking if x is a power of 2
+                        x = i2.minterm ^ i1m
+                        if (x & (x-1)) == 0:
+                            # update wildcards with bit where they differ
+                            wildcards = x | w
+                            # we can take either i1m or i2m, doesnt matterr
+                            # since the difference is under a wildcard
+                            # but we have to zero out the differing bit
+                            # (see requirement in Implicant constructor)
+                            next_table[hw][wildcards].add(Implicant(i1m & ~wildcards, wildcards))
 
-                        # add them as combinable so we can check later which are prime
-                        combinable_implicants.add(i1)
-                        combinable_implicants.add(i2)
+                            # add them as combinable so we can check later which are prime
+                            combinable_implicants.add(i1)
+                            combinable_implicants.add(i2)
 
+        #print("MAIN LOOP END")
         for hw in range(dim+1):
-            prime_implicants.update({i for i in prev_table[hw] if i not in combinable_implicants})
+            prime_implicants.update({i for _, iss in prev_table[hw].items() for i in iss if i not in combinable_implicants})
 
         return next_table, prime_implicants
 
@@ -85,7 +93,7 @@ class Qmc:
         dim = len(self._ids_to_symbols)
         prime_implicant_chart = [[] for _ in range(pow2(dim))]
 
-        filtered_implicants = set()
+        filtered_implicants = []
 
         for pi in prime_implicants:
             for m in pi.all_minterms(dim):
@@ -101,7 +109,7 @@ class Qmc:
             if len(minterm_with_min_implicants) > 1:
                 best_implicant = max(minterm_with_min_implicants, key=lambda x: popcnt(x.wildcards))
 
-            filtered_implicants.add(best_implicant)
+            filtered_implicants.append(best_implicant)
             for m in best_implicant.all_minterms(dim):
                 unsatisfied_minterms.discard(m)
 
@@ -160,11 +168,11 @@ class Qmc:
         current_table = self._empty_table()
         for i, e in enumerate(evals):
             if e:
-                current_table[popcnt(i)].add(Implicant(i, 0))
+                current_table[popcnt(i)][0].add(Implicant(i, 0))
 
         prime_implicants = set()
         while True:
-            print("Step")
+            #print("Step")
             #print(current_table)
             next_table, current_prime_implicants = self._gen_next_table(current_table)
             prime_implicants.update(current_prime_implicants)
@@ -175,7 +183,7 @@ class Qmc:
 
         #print(prime_implicants)
 
-        print("Filtering")
+        #print("Filtering")
         return self._filter_prime_implicants(prime_implicants)
 
     def to_dnf(self):
@@ -190,7 +198,7 @@ class Qmc:
 
         filtered_prime_implicants = self._gather_prime_implicants(evals)
 
-        print("Converting")
+        #print("Converting")
         return self._convert_implicants_to_dnf(filtered_prime_implicants)
 
     def to_cnf(self):

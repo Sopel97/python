@@ -4,13 +4,21 @@ def pow2(n):
 def mask(n):
     return (1 << n) - 1
 
+POPCOUNT_TABLE16 = [0] * 2**16
+for i in range(len(POPCOUNT_TABLE16)):
+    POPCOUNT_TABLE16[i] = (i & 1) + POPCOUNT_TABLE16[i >> 1]
+
 def popcnt(n):
-    b = 0
-    while n != 0:
-        if n & 1:
-            b += 1
-        n >>= 1
-    return b
+    return (POPCOUNT_TABLE16[ n        & 0xffff] +
+            POPCOUNT_TABLE16[(n >> 16) & 0xffff])
+
+def hamming_distance(lhs, rhs):
+    n = lhs ^ rhs
+    return (POPCOUNT_TABLE16[ n        & 0xffff] +
+            POPCOUNT_TABLE16[(n >> 16) & 0xffff])
+
+def is_pow2(n):
+    return ((n & (n-1)) == 0)
 
 class BoolVector:
     def __init__(self, dim, val):

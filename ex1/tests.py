@@ -102,8 +102,10 @@ def main():
     parse_expression('A_')
     '''
 
-    #print(Qmc(parse_expression('(B&!C&!D)|(A&!B)|(A&C)')).to_dnf())
-    print(Qmc(parse_expression('(B&!C&!D)|(A&!B)|(A&C)|D|E|F|G|H|I|J')).to_dnf())
+    expr = parse_expression('(a|b)&((c|d)&(e&f))|(a|e)&((f|d)&(g&f))|(i|b)&((h|d)|(j&f))|p|q')
+    print(len(gather_symbols_from_expr(expr)))
+    print(Qmc(expr).to_dnf())
+    #print(KarnaughMap.from_expression(expr).to_dnf())
 
     '''
     test('(a|b)&(((c|d)&(e&f))|((c|d)&(e&f)))', '(a|b)&((c|d)&(e&f))')
