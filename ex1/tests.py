@@ -102,12 +102,12 @@ def main():
     parse_expression('A_')
     '''
 
-    expr = parse_expression('(a|b)&((c|d)&(e&f))|(a|e)&((f|d)&(g&f))|(i|b)&((h|d)|(j&f))|p|q')
-    print(len(gather_symbols_from_expr(expr)))
-    print(Qmc(expr).to_dnf())
+    #expr = parse_expression('(a|b)&((c|d)&(e&f))|(a|e)&((f|d)&(g&f))|(i|b)&((h|d)|(j&f))|p|q')
+    #print(len(gather_symbols_from_expr(expr)))
+    #print(Qmc(expr).to_dnf())
     #print(KarnaughMap.from_expression(expr).to_dnf())
 
-    '''
+    #'''
     test('(a|b)&(((c|d)&(e&f))|((c|d)&(e&f)))', '(a|b)&((c|d)&(e&f))')
     test('!a|b', 'a>b')
     test('!!!!X', 'X')
@@ -179,7 +179,7 @@ def main():
 
         print(i-1)
         print([e.complexity for e in es])
-        print(es)
+        print([str(e) for e in es])
         print('----------------------------')
     # '''
 

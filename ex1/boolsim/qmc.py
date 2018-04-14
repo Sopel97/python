@@ -11,7 +11,7 @@ class Implicant:
         # it is assumed that where wildcards has a 1 bit then minterm has 0 bit
         self.minterm = minterm
         self.wildcards = wildcards
-        self.hash = hash((self.minterm, self.wildcards))
+        self.hash = hash((minterm, wildcards))
 
     def __repr__(self):
         return '({0}, {1})'.format(self.minterm, self.wildcards)

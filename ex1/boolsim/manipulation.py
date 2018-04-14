@@ -87,6 +87,8 @@ class FullSimplifier:
             new_permuted_exprs = set()
             for e in prev_permuted_exprs:
                 for to_match, to_apply in self._ruleset.permuting_rules:
+                    # apply_pattern_recursively_to_some -> apply_pattern_recursively_to_all to improve
+                    # coverage with an impact on speed
                     new_permuted_exprs.update(e.apply_pattern_recursively_to_some(to_match, to_apply))
 
             prev_permuted_exprs = new_permuted_exprs - self._current_exprs
