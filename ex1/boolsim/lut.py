@@ -14,7 +14,7 @@ expression_lookup_tables = [
     # 2D
     [
         Constant(False),
-        parse_expression('!a&!b'),
+        parse_expression('!(a|b)'),
         parse_expression('a&!b'),
         parse_expression('!b'),
         parse_expression('!a&b'),
