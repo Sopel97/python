@@ -127,8 +127,8 @@ class FullSimplifier:
 
 
 class DnfSimplifier:
-    def __init__(self, expr):
-        self._best = KarnaughMap.from_expression(expr).to_dnf()
+    def __init__(self, algo, expr):
+        self._best = algo.from_expression(expr).to_dnf()
         self._is_completed = True
 
     @property
@@ -149,8 +149,8 @@ class DnfSimplifier:
 
 
 class CnfSimplifier:
-    def __init__(self, expr):
-        self._best = KarnaughMap.from_expression(expr).to_cnf()
+    def __init__(self, algo, expr):
+        self._best = algo.from_expression(expr).to_cnf()
         self._is_completed = True
 
     @property

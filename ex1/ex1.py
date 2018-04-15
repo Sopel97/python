@@ -26,11 +26,17 @@ def full(args):
     print(simplifier.best_expr())
     #print(simplifier.best_expr().complexity)
 
+def select_algo(s):
+    return {
+        'karnaugh' : KarnaughMap,
+        'quine' : Qmc
+    }[s]
+
 def cnf(args):
-    print(CnfSimplifier(parse_expression(args.expr)).best_expr())
+    print(CnfSimplifier(select_algo(args.a), parse_expression(args.expr)).best_expr())
 
 def dnf(args):
-    print(DnfSimplifier(parse_expression(args.expr)).best_expr())
+    print(DnfSimplifier(select_algo(args.a), parse_expression(args.expr)).best_expr())
 
 def scramble(args):
     print(Scrambler(scrambling_ruleset, parse_expression(args.expr), args.q).step(args.s).random_expr())
@@ -51,10 +57,12 @@ def main():
     parser_full.set_defaults(func=full)
 
     parser_cnf = subparsers.add_parser('cnf', help='a help')
+    parser_cnf.add_argument('-a', type=str, default='karnaugh', choices=['karnaugh', 'quine'], help='max number of steps to execute')
     parser_cnf.add_argument('expr', type=str, help='expr help')
     parser_cnf.set_defaults(func=cnf)
 
     parser_dnf = subparsers.add_parser('dnf', help='a help')
+    parser_dnf.add_argument('-a', type=str, default='karnaugh', choices=['karnaugh', 'quine'], help='max number of steps to execute')
     parser_dnf.add_argument('expr', type=str, help='expr help')
     parser_dnf.set_defaults(func=dnf)
 
@@ -63,9 +71,12 @@ def main():
     parser_scramble.add_argument('-q', type=int, default=16, help='max number of expressions that qualify to the next step')
     parser_scramble.add_argument('expr', type=str, help='expression')
     parser_scramble.set_defaults(func=scramble)
-
-    args = parser.parse_args()
-    args.func(args)
+    if len(sys.argv) == 1:
+        parser.print_help(sys.stderr)
+        sys.exit(1)
+    else:
+        args = parser.parse_args()
+        args.func(args)
 
     #print(time.time() - start)
 

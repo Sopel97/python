@@ -13,8 +13,8 @@ def test(expr_str, expected_expr_str):
     eval_simplified = expr.try_simplify_by_evaluation(try_lookup_expression)
 
     full_simplifier = FullSimplifier(full_simplification_ruleset, expr)
-    cnf = CnfSimplifier(expr).best_expr()
-    dnf = DnfSimplifier(expr).best_expr()
+    cnf = CnfSimplifier(KarnaughMap, expr).best_expr()
+    dnf = DnfSimplifier(KarnaughMap, expr).best_expr()
 
     print('[Base; Complexity: {0}]: {1}'.format(expr.complexity, expr))
     print('[Eval; Complexity: {0}]: {1}'.format(eval_simplified.complexity, eval_simplified))
