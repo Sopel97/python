@@ -303,7 +303,6 @@ def eval_to_bool(expr, ids_to_symbols):
     dim = len(ids_to_symbols)
     return bool_array_to_int([expr.evaluate(symbol_dict_from_index(ids_to_symbols, BoolVector(dim, i))) for i in range(pow2(dim))])
 
-
 def try_lookup_expression(expr):
     ids_to_symbols = gather_symbols_from_expr(expr)
     dim = len(ids_to_symbols)
