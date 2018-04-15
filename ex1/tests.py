@@ -134,6 +134,7 @@ def main():
     test('(!a&((b|c)&d))|(!((c|b)&d)&a)', 'a^(b|c&d)')
     test('A&B|C&D|E&F|G&H', 'A&B|C&D|E&F|G&H')
     test('A1A1&B00B2', 'A1A1&B00B2')
+    test('((((c|b|a)&(c|!a)&!b)^(!d&a))&(d^e)&!(!(d^e)&!(((c|b|a)&(c|!a)&!b&!(!d&a))|(!((c|b|a)&(c|!a)&!b)&!d&a))))|(!(d^e)&!(((c|b|a)&(c|!a)&!b&!(!d&a))|(!((c|b|a)&(c|!a)&!b)&!d&a)))', 'e<=>a|d<=>(c=>b)')
     # '''
 
     #print(CnfSimplifier(parse_expression('(!((a|b)&(((c|d)&(e&f))|((c|d)&(e&f))))&!(!A&!B|!C|!D|!E))|(((a|b)&(((c|d)&(e&f))|((c|d)&(e&f))))&(!A&!B|!C|!D|!E))')).best_expr())

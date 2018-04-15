@@ -56,6 +56,11 @@ class FullSimplifier:
     def is_completed(self):
         return self._is_completed
 
+    def n_best(self, exprs, n):
+        if len(exprs) > n:
+            return {e.try_simplify_by_evaluation(try_lookup_expression) for e in sorted(exprs, key=lambda x: x.complexity)[:n]}
+        return exprs
+
     def _reduction_step(self):
         # Try reduce as much as possible before continuing
         # It's guaranteed to exit the loop because all reducing_rules
@@ -70,7 +75,9 @@ class FullSimplifier:
             if not new_reduced_exprs:
                 break
 
-            prev_reduced_exprs = new_reduced_exprs - self._current_exprs
+            # hardcoded pruning
+            next_prev = new_reduced_exprs - self._current_exprs
+            prev_reduced_exprs = self.n_best(next_prev, max(128, int(len(next_prev)**0.75)))
             self._current_exprs.update(prev_reduced_exprs)
 
     def _pruning_step(self):

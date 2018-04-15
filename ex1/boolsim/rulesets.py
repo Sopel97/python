@@ -195,9 +195,23 @@ scrambling_ruleset.add_rule('a', '!!a')
 scrambling_ruleset.add_rule('!(a|b)', '!a&!b')
 scrambling_ruleset.add_rule('!(a&b)', '!a|!b')
 
+scrambling_ruleset.add_rule('!b&a', 'a^(a&b)')
+scrambling_ruleset.add_rule('b|!a', 'a=(a&b)')
+
 scrambling_ruleset.add_rule('a=b', '(a>b)&(b>a)')
 
 scrambling_ruleset.add_rule('a>b', '!a|b')
+scrambling_ruleset.add_rule('a=b', '!a^b')
+scrambling_ruleset.add_rule('a^b', '!a=b')
 
 scrambling_ruleset.add_rule('a^b', '(a&!b)|(!a&b)')
+scrambling_ruleset.add_rule('a^b', '(!a|!b)&(a|b)')
 scrambling_ruleset.add_rule('a=b', '(!a&!b)|(a&b)')
+scrambling_ruleset.add_rule('a=b', '(a|!b)&(!a|b)')
+
+scrambling_ruleset.add_rule('(a&b)>c', '(a&b)>(a&c)')
+scrambling_ruleset.add_rule('a>(b=c)', '(a&b)=(a&c)')
+scrambling_ruleset.add_rule('a&(b^c)', '(a&b)^(a&c)')
+
+scrambling_ruleset.add_rule('a|b', 'a|(!a&b)')
+scrambling_ruleset.add_rule('a&b', 'a&(!a|b)')
