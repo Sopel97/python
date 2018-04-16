@@ -66,8 +66,12 @@ class FullSimplifier:
         # It's guaranteed to exit the loop because all reducing_rules
         # decrease the complexity
         prev_reduced_exprs = self._current_exprs
+        num_exprs_to_preserve = len(prev_reduced_exprs)
         while True:
+            num_exprs_to_preserve = num_exprs_to_preserve//2
+
             new_reduced_exprs = set()
+            #print("Reducing {0} exprs".format(len(prev_reduced_exprs)))
             for e in prev_reduced_exprs:
                 for to_match, to_apply in self._ruleset.reducing_rules:
                     new_reduced_exprs.update(e.apply_pattern_recursively_to_some(to_match, to_apply))
@@ -75,9 +79,12 @@ class FullSimplifier:
             if not new_reduced_exprs:
                 break
 
+            best = self.best_expr()
+            #print('Current best ({0}): {1}'.format(best.complexity, str(best)))
+
             # hardcoded pruning
             next_prev = new_reduced_exprs - self._current_exprs
-            prev_reduced_exprs = self.n_best(next_prev, max(128, int(len(next_prev)**0.75)))
+            prev_reduced_exprs = self.n_best(next_prev, max(num_exprs_to_preserve, 128))
             self._current_exprs.update(prev_reduced_exprs)
 
     def _pruning_step(self):
@@ -92,6 +99,7 @@ class FullSimplifier:
         prev_permuted_exprs = self._current_exprs
         for i in range(self._num_permuting_iterations):
             new_permuted_exprs = set()
+            #print('Permutation {0}: {1}'.format(i, len(prev_permuted_exprs)))
             for e in prev_permuted_exprs:
                 for to_match, to_apply in self._ruleset.permuting_rules:
                     # apply_pattern_recursively_to_some -> apply_pattern_recursively_to_all to improve
@@ -110,11 +118,17 @@ class FullSimplifier:
         if self._is_completed:
             return self
 
+        #print("Permute")
         self._permutation_step()
 
+        #print("Reduce")
         self._reduction_step()
 
+        #print("Prune")
         self._pruning_step()
+
+        best = self.best_expr()
+        #print("Best ({0}): {1}".format(best.complexity, str(best)))
 
         old = self._min_complexity
         self._min_complexity = min(self._current_exprs, key = lambda x: x.complexity).complexity
