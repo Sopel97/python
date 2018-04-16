@@ -6,6 +6,9 @@ import argparse
 
 from boolsim import *
 
+def verbose_callback(msg):
+    print(msg)
+
 def full(args):
     #print('\nOriginal: ' + str(args.expr))
     #print(parse_expression(args.expr).complexity)
@@ -15,7 +18,8 @@ def full(args):
         args.c,
         args.m,
         args.q,
-        args.p
+        args.p,
+        verbose_callback if args.v else None
         )
     if args.s == -1:
         simplifier.step_until_done()
@@ -41,6 +45,9 @@ def dnf(args):
 def scramble(args):
     print(Scrambler(scrambling_ruleset, parse_expression(args.expr), args.q).step(args.s).random_expr())
 
+def complexity(args):
+    print(parse_expression(args.expr).complexity)
+
 def main():
     #start = time.time()
 
@@ -53,6 +60,7 @@ def main():
     parser_full.add_argument('-m', type=int, default=10, help='expressions with complexity less than this won\'t be pruned early')
     parser_full.add_argument('-q', type=int, default=8, help='max number of expressions that qualify to the next step')
     parser_full.add_argument('-s', type=int, default=-1, help='max number of steps to execute')
+    parser_full.add_argument('-v', action='store_true', help='verbosity')
     parser_full.add_argument('expr', type=str, help='expr help')
     parser_full.set_defaults(func=full)
 
@@ -65,6 +73,10 @@ def main():
     parser_dnf.add_argument('-a', type=str, default='karnaugh', choices=['karnaugh', 'quine'], help='max number of steps to execute')
     parser_dnf.add_argument('expr', type=str, help='expr help')
     parser_dnf.set_defaults(func=dnf)
+
+    parser_comp = subparsers.add_parser('complexity', help='a help')
+    parser_comp.add_argument('expr', type=str, help='expr help')
+    parser_comp.set_defaults(func=complexity)
 
     parser_scramble = subparsers.add_parser('scramble', help='asdas', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser_scramble.add_argument('-s', type=int, default=3, help='number of steps')
