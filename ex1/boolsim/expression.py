@@ -277,7 +277,7 @@ class Expression:
 
         return resulting_expressions
 
-    def try_simplify_by_evaluation(self, lut):
+    def try_simplify_by_evaluation(self, lut=None):
         """Try simplify the expression by evaluating subtrees.
 
         Recursively tries to simplify the expression by evaluating children
@@ -293,9 +293,10 @@ class Expression:
             Expression: Either a newly formed, simplified expression, an
                 expression from lookup table, or self if nothing can be done.
         """
-        simplified = lut(self)
-        if not simplified is self:
-            return simplified
+        if lut:
+            simplified = lut(self)
+            if not simplified is self:
+                return simplified
 
         return self.try_simplify_by_children_evaluation(lut)
 

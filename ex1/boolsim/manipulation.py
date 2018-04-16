@@ -41,7 +41,7 @@ class FullSimplifier:
             self._min_complexity = looked_up_expr.complexity
         else:
             km = KarnaughMap.from_expression(expr)
-            candidate_root_exprs = [expr, expr.try_simplify_by_evaluation(try_lookup_expression), km.to_dnf(), km.to_cnf()]
+            candidate_root_exprs = [expr.try_simplify_by_evaluation(), expr.try_simplify_by_evaluation(try_lookup_expression), km.to_dnf(), km.to_cnf()]
             self._min_complexity = min(candidate_root_exprs, key = lambda x: x.complexity).complexity
             self._current_exprs = {e for e in candidate_root_exprs if e.complexity <= max(confidence_factor_min_complexity, self._min_complexity * confidence_factor)}
 
@@ -62,9 +62,10 @@ class FullSimplifier:
         if self._verbosity_callback:
             self._verbosity_callback(message)
 
-    def n_best(self, exprs, n):
+    @classmethod
+    def n_best(cls, exprs, n):
         if len(exprs) > n:
-            return {e.try_simplify_by_evaluation(try_lookup_expression) for e in sorted(exprs, key=lambda x: x.complexity)[:n]}
+            return {e for e in sorted(exprs, key=lambda x: x.complexity)[:n]}
         return exprs
 
     def _reduction_step(self):
@@ -85,17 +86,18 @@ class FullSimplifier:
             for e in prev_reduced_exprs:
                 for to_match, to_apply in self._ruleset.reducing_rules:
                     new_reduced_exprs.update(e.apply_pattern_recursively_to_some(to_match, to_apply))
+                new_reduced_exprs.add(e.try_simplify_by_evaluation(try_lookup_expression))
 
-            if not new_reduced_exprs:
-                break
+            # hardcoded pruning
+            next_prev = new_reduced_exprs - self._current_exprs
+            prev_reduced_exprs = self.n_best(next_prev, max(num_exprs_to_preserve, self._max_preserved_expressions*16))
+            self._current_exprs.update(prev_reduced_exprs)
 
             best = self.best_expr()
             self.log('    Current best expression: [{0}] {1}'.format(best.complexity, str(best)))
 
-            # hardcoded pruning
-            next_prev = new_reduced_exprs - self._current_exprs
-            prev_reduced_exprs = self.n_best(next_prev, max(num_exprs_to_preserve, 128))
-            self._current_exprs.update(prev_reduced_exprs)
+            if not prev_reduced_exprs:
+                break
 
         best = self.best_expr()
         self.log('    Reduction step ended, best expression: [{0}] {1}'.format(best.complexity, str(best)))
@@ -107,7 +109,7 @@ class FullSimplifier:
         self.log('Pruning step:')
         start = len(self._current_exprs)
         if len(self._current_exprs) > self._max_preserved_expressions:
-            self._current_exprs = {e.try_simplify_by_evaluation(try_lookup_expression) for e in sorted(self._current_exprs, key=lambda x: x.complexity)[:self._max_preserved_expressions]}
+            self._current_exprs = self.n_best(self._current_exprs, self._max_preserved_expressions)
         end = len(self._current_exprs)
         self.log('    Pruned {0} expressions. {1} left.'.format(start-end, end))
 
@@ -133,7 +135,7 @@ class FullSimplifier:
             # are on leaves of simplification rules, but the simpler ones should be
             # already simplified by conversion to CNF or DNF.
             self._current_exprs.update(prev_permuted_exprs)
-            #self._current_exprs.update(e.try_simplify_by_evalutation() for e in prev_permuted_exprs)
+            #self._current_exprs.update(e.try_simplify_by_evaluation() for e in prev_permuted_exprs)
 
         self.log('    Permutation step ended, total of {0} expressions'.format(len(self._current_exprs)))
 

@@ -134,7 +134,7 @@ def main():
     test('(!a&((b|c)&d))|(!((c|b)&d)&a)', 'a^(b|c&d)')
     test('A&B|C&D|E&F|G&H', 'A&B|C&D|E&F|G&H')
     test('A1A1&B00B2', 'A1A1&B00B2')
-    #test('((((c|b|a)&(c|!a)&!b)^(!d&a))&(d^e)&!(!(d^e)&!(((c|b|a)&(c|!a)&!b&!(!d&a))|(!((c|b|a)&(c|!a)&!b)&!d&a))))|(!(d^e)&!(((c|b|a)&(c|!a)&!b&!(!d&a))|(!((c|b|a)&(c|!a)&!b)&!d&a)))', 'e<=>a|d<=>(c=>b)') # hard but finds it reasonably well
+    test('((((c|b|a)&(c|!a)&!b)^(!d&a))&(d^e)&!(!(d^e)&!(((c|b|a)&(c|!a)&!b&!(!d&a))|(!((c|b|a)&(c|!a)&!b)&!d&a))))|(!(d^e)&!(((c|b|a)&(c|!a)&!b&!(!d&a))|(!((c|b|a)&(c|!a)&!b)&!d&a)))', 'e<=>a|d<=>(c=>b)') # hard but finds it reasonably well
     #test('(!B&D&!E) | (!A&!D&!E) | (!B&C&!E) | (!A&!C&!E) | (B&!C&!D&!E) | (B&!C&D&E) | (A&C&D&!E) | (A&C&!D&E) | (!A&C&D&E) | (!A&!B&!C&!D)', '(E&C=>A^D)&((E=>C)|(D<=>B))&((A=>D)|B|C)&((B=>(C=>E))|(A<=>D))&(B=>(A&D=>E|C))') # very hard and unproven
     # '''
 
