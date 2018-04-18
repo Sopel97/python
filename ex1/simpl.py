@@ -65,12 +65,12 @@ def main():
     parser_full.set_defaults(func=full)
 
     parser_cnf = subparsers.add_parser('cnf', help='Reduces the expression to minimal CNF form (Conjunctive Normal Form)')
-    parser_cnf.add_argument('-a', type=str, default='karnaugh', choices=['karnaugh', 'quine'], help='max number of steps to execute')
+    parser_cnf.add_argument('-a', type=str, default='karnaugh', choices=['karnaugh', 'quine'], help='algorithm to use')
     parser_cnf.add_argument('expr', type=str, help='expression to simplify')
     parser_cnf.set_defaults(func=cnf)
 
     parser_dnf = subparsers.add_parser('dnf', help='Reduces the expression to minimal DNF form (Disjunctive Normal Form)')
-    parser_dnf.add_argument('-a', type=str, default='karnaugh', choices=['karnaugh', 'quine'], help='max number of steps to execute')
+    parser_dnf.add_argument('-a', type=str, default='karnaugh', choices=['karnaugh', 'quine'], help='algorithm to use')
     parser_dnf.add_argument('expr', type=str, help='expression to simplify')
     parser_dnf.set_defaults(func=dnf)
 
