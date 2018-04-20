@@ -1,13 +1,14 @@
 import json
 import sys
 import re
+from PIL import Image, ImageDraw
 
 class Color:
     tuple_pattern = re.compile(r'\(([0-9]+)[,]([0-9]+)[,]([0-9]+)\)')
-    html_pattern = re.compile(r'#([0-9a-fA-F][0-9a-fA-F])([0-9a-fA-F][0-9a-fA-F])([0-9a-fA-F][0-9a-fA-F])')
+    html_pattern = re.compile(r'#([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2})')
 
     @classmethod
-    def from_json(cls, json_node, palette):
+    def from_json(cls, json_node, palette=None):
         content = ''.join(json_node.split())
         match = Color.tuple_pattern.fullmatch(content)
         if match:
@@ -17,12 +18,16 @@ class Color:
         if match:
             return Color(int(match[1], 16), int(match[2], 16), int(match[3], 16))
 
-        return palette[content]
+        if palette:
+            return palette[content]
 
     def __init__(self, r, g, b):
         self._r = r
         self._g = g
         self._b = b
+
+    def as_tuple(self):
+        return (self._r, self._g, self._b)
 
     @property
     def r(self):
@@ -43,6 +48,14 @@ class Color:
         return self.__repr__()
 
 class ColorPalette:
+    @classmethod
+    def from_json(cls, json_node):
+        palette = ColorPalette()
+        for name, color in json_node.items():
+            palette.add_color(name, Color.from_json(color))
+
+        return palette
+
     def __init__(self):
         self._colors = dict()
 
@@ -64,6 +77,9 @@ class Point(Shape):
         self._x = x
         self._y = y
 
+    def as_tuple(self):
+        return (self._x, self._y)
+
     def __add__(self, other):
         return Point(self._x + other._x, self._y + other._y)
 
@@ -75,6 +91,12 @@ class Point(Shape):
 
     def __str__(self):
         return self.__repr__()
+
+    def draw(self, renderer, color):
+        renderer.point(
+            [self.as_tuple()],
+            fill=color.as_tuple()
+        )
 
 class Polygon(Shape):
     @classmethod
@@ -89,6 +111,12 @@ class Polygon(Shape):
 
     def __str__(self):
         return self.__repr__()
+
+    def draw(self, renderer, color):
+        renderer.polygon(
+            [p.as_tuple() for p in self._vertices],
+            fill=color.as_tuple()
+        )
 
 class Rectangle(Shape):
     @classmethod
@@ -106,6 +134,15 @@ class Rectangle(Shape):
     def __str__(self):
         return self.__repr__()
 
+    def draw(self, renderer, color):
+        renderer.rectangle(
+            [
+                self._min.as_tuple(),
+                self._max.as_tuple(),
+            ],
+            fill=color.as_tuple()
+        )
+
 class Square(Shape):
     @classmethod
     def from_json(cls, json_node):
@@ -120,6 +157,15 @@ class Square(Shape):
 
     def __str__(self):
         return self.__repr__()
+
+    def draw(self, renderer, color):
+        renderer.rectangle(
+            [
+                self._min.as_tuple(),
+                (self._min + Point(self._size, self._size)).as_tuple(),
+            ],
+            fill=color.as_tuple()
+        )
 
 class Circle(Shape):
     @classmethod
@@ -136,9 +182,19 @@ class Circle(Shape):
     def __str__(self):
         return self.__repr__()
 
+    def draw(self, renderer, color):
+        r = Point(self._radius, self._radius)
+        renderer.ellipse(
+            [
+                (self._origin - r).as_tuple(),
+                (self._origin + r).as_tuple(),
+            ],
+            fill=color.as_tuple()
+        )
+
 class ColoredShape:
     @classmethod
-    def from_json(cls, json_node, shape_cls, palette):
+    def from_json(cls, json_node, shape_cls, palette=None):
         return ColoredShape(shape_cls.from_json(json_node), Color.from_json(json_node['color'], palette))
 
     def __init__(self, shape, color):
@@ -150,6 +206,9 @@ class ColoredShape:
 
     def __str__(self):
         return self.__repr__()
+
+    def draw(self, renderer):
+        self._shape.draw(renderer, self._color)
 
 class ShapeList:
     shape_types = {
@@ -183,17 +242,53 @@ class ShapeList:
     def __str__(self):
         return str(self._shapes)
 
+    def draw(self, renderer):
+        for shape in self._shapes:
+            shape.draw(renderer)
+
+class Canvas:
+    @classmethod
+    def from_json(cls, json_node, palette=None):
+        return Canvas(
+            json_node['width'],
+            json_node['height'],
+            Color.from_json(json_node['fg_color'], palette),
+            Color.from_json(json_node['bg_color'], palette)
+            )
+
+    def __init__(self, width, height, fg_color, bg_color):
+        self._width = width
+        self._height = height
+        self._fg_color = fg_color
+        self._bg_color = bg_color
+        self._image = Image.new('RGB', (width, height), bg_color.as_tuple())
+
+        self._image
+
+    def __repr__(self):
+        return 'Canvas({}, {}, {}, {})'.format(self._width, self._height, repr(self._fg_color), repr(self._bg_color))
+
+    def __str__(self):
+        return self.__repr__()
+
+    def save_to_file(self, file_name):
+        self._image.save(file_name, 'PNG')
+
+    def draw(self, drawable):
+        renderer = ImageDraw.Draw(self._image)
+        drawable.draw(renderer)
 
 def main():
-    palette = ColorPalette()
-    palette.add_color('red', Color(255, 0, 0))
-    palette.add_color('green', Color(0, 255, 0))
-    palette.add_color('blue', Color(0, 0, 255))
-
     json_content = json.load(open(sys.argv[1]))
-    print(repr(ShapeList.from_json(json_content['Figures'], palette)))
+    palette = ColorPalette.from_json(json_content['Palette'])
+    canvas = Canvas.from_json(json_content['Screen'], palette)
+    shapes = ShapeList.from_json(json_content['Figures'], palette)
+    print(repr(shapes))
+    print(repr(canvas))
 
-    print(palette['green'])
+    canvas.draw(shapes)
+    canvas.save_to_file('out.png')
+
 
 if __name__ == '__main__':
     main()
