@@ -1,0 +1,9 @@
+<p> Name: {{ machine_type.name }} </p>
+<p> Machines of this type: </p>
+{% if machine_list %}
+    <ul>
+    {% for machine in machine_list %}
+        <li><a href="{% url 'crafting:machine' gameplay_mode_id machine.id %}"> {{ machine.item.name }}</a></li>
+    {% endfor %}
+    </ul>
+{% endif %}

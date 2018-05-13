@@ -1,0 +1,7 @@
+{% if research_list %}
+    <ul>
+    {% for research in research_list %}
+        <li><a href="{% url 'crafting:research' gameplay_mode_id research.id %}">{{ research.name }}</a></li>
+    {% endfor %}
+    </ul>
+{% endif %}

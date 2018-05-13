@@ -1,0 +1,9 @@
+<p> Name: {{ research.name }} </p>
+<p> Unlocked items: </p>
+{% if unlocked_item_list %}
+    <ul>
+    {% for item in unlocked_item_list %}
+        <li><a href="{% url 'crafting:item' gameplay_mode_id item.id %}"> {{ item.name }}</a></li>
+    {% endfor %}
+    </ul>
+{% endif %}

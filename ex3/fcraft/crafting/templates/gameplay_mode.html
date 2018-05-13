@@ -1,0 +1,25 @@
+<p> Name: {{ gameplay_mode.name }} </p>
+
+<p>
+    <a href="{% url 'crafting:graph' gameplay_mode.id %}"> Graph generator </a>
+</p>
+
+<p>
+    <a href="{% url 'crafting:items' gameplay_mode.id %}"> Items </a>
+</p>
+
+<p>
+    <a href="{% url 'crafting:researches' gameplay_mode.id %}"> Researches </a>
+</p>
+
+<p>
+    <a href="{% url 'crafting:recipes' gameplay_mode.id %}"> Recipes </a>
+</p>
+
+<p>
+    <a href="{% url 'crafting:machines' gameplay_mode.id %}"> Machines </a>
+</p>
+
+<p>
+    <a href="{% url 'crafting:machine_types' gameplay_mode.id %}"> Machine Types </a>
+</p>

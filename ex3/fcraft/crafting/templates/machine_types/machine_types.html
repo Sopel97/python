@@ -1,0 +1,7 @@
+{% if machine_type_list %}
+    <ul>
+    {% for machine_type in machine_type_list %}
+        <li><a href="{% url 'crafting:machine_type' gameplay_mode_id machine_type.id %}"> {{ machine_type.name }}</a></li>
+    {% endfor %}
+    </ul>
+{% endif %}
