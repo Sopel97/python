@@ -1,10 +1,14 @@
 from django.urls import path
 
+from django.conf.urls import include, url
+from django.contrib import admin
+
 from . import views
 
 app_name = 'crafting'
 urlpatterns = [
     path('', views.gameplay_modes, name='gameplay_modes'),
+
     path('<int:gameplay_mode_id>/', views.gameplay_mode, name='gameplay_mode'),
 
     path('<int:gameplay_mode_id>/graph/', views.graph, name='graph'),

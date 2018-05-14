@@ -1,6 +1,10 @@
 from django.db import models
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
+from django.conf import settings
+from django.contrib.auth.models import Group
+
+from smart_selects.db_fields import ChainedForeignKey
 
 class GameplayMode(models.Model):
     class Meta:
@@ -8,6 +12,9 @@ class GameplayMode(models.Model):
 
     name = models.CharField(max_length=256)
     description = models.CharField(max_length=4096, blank=True)
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True)
+    editing_users = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='gameplay_modes', blank=True)
+    editing_groups = models.ManyToManyField(Group, related_name='gameplay_modes', blank=True)
 
     def __str__(self):
         return str(self.name)
@@ -16,8 +23,8 @@ class Research(models.Model):
     class Meta:
         verbose_name_plural = 'Researches'
 
-    name = models.CharField(max_length=256)
     gameplay_mode = models.ForeignKey(GameplayMode, on_delete=models.CASCADE, related_name='researches')
+    name = models.CharField(max_length=256)
 
     def __str__(self):
         return str(self.name)
@@ -26,15 +33,34 @@ class ResearchPrerequisite(models.Model):
     class Meta:
         verbose_name_plural = 'ResearchPrerequisites'
 
-    research = models.ForeignKey(Research, on_delete=models.CASCADE, related_name='prerequisites')
-    prereqiusite = models.ForeignKey(Research, on_delete=models.CASCADE, related_name='required_by')
+    gameplay_mode = models.ForeignKey(GameplayMode, on_delete=models.CASCADE)
+    research = ChainedForeignKey(
+        Research,
+        chained_field='gameplay_mode',
+        chained_model_field='gameplay_mode',
+        show_all=False,
+        auto_choose=False,
+        sort=True,
+        on_delete=models.CASCADE,
+        related_name='prerequisites'
+    )
+    prerequisite = ChainedForeignKey(
+        Research,
+        chained_field='gameplay_mode',
+        chained_model_field='gameplay_mode',
+        show_all=False,
+        auto_choose=False,
+        sort=True,
+        on_delete=models.CASCADE,
+        related_name='required_by'
+    )
 
     def clean(self):
         if self.research.gameplay_mode != self.prerequisite.gameplay_mode:
             raise ValidationError(_('ResearchPrerequisite requires reserach and prerequisite to be from the same GameplayMode.'))
 
     def __str__(self):
-        return 'Research {0} requires {1}'.format(str(self.research), str(self.prereqiusite))
+        return 'Research {0} requires {1}'.format(str(self.research), str(self.prerequisite))
 
 class Item(models.Model):
     class Meta:
@@ -49,10 +75,22 @@ class Item(models.Model):
         (GAS_STATE, 'gas')
     )
 
+    gameplay_mode = models.ForeignKey(GameplayMode, on_delete=models.CASCADE, related_name='items')
     name = models.CharField(max_length=128)
     state = models.IntegerField(choices=STATE_CHOICES, default=SOLID_STATE, blank=True)
-    required_research = models.ForeignKey(Research, related_name='unlocked_items', on_delete=models.SET_NULL, blank=True, null=True, default=None)
-    gameplay_mode = models.ForeignKey(GameplayMode, on_delete=models.CASCADE, related_name='items')
+    required_research = ChainedForeignKey(
+        Research,
+        chained_field='gameplay_mode',
+        chained_model_field='gameplay_mode',
+        show_all=False,
+        auto_choose=False,
+        sort=True,
+        related_name='unlocked_items',
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        default=None
+    )
 
     def clean(self):
         if (self.required_research is not None) and (self.gameplay_mode != self.required_research.gameplay_mode):
@@ -65,8 +103,8 @@ class MachineType(models.Model):
     class Meta:
         verbose_name_plural = 'MachineTypes'
 
-    name = models.CharField(max_length=128)
     gameplay_mode = models.ForeignKey(GameplayMode, related_name='machine_types', on_delete=models.CASCADE)
+    name = models.CharField(max_length=128)
 
     def __str__(self):
         return str(self.name)
@@ -76,12 +114,33 @@ class Machine(models.Model):
     class Meta:
         verbose_name_plural = 'Machines'
 
-    item = models.OneToOneField(Item, on_delete=models.CASCADE, unique=True)
-    machine_type = models.ForeignKey(MachineType, related_name='machines', on_delete=models.CASCADE)
+    gameplay_mode = models.ForeignKey(GameplayMode, related_name='machines', on_delete=models.CASCADE)
+    item = ChainedForeignKey(
+        Item,
+        chained_field='gameplay_mode',
+        chained_model_field='gameplay_mode',
+        show_all=False,
+        auto_choose=False,
+        sort=True,
+        on_delete=models.CASCADE,
+        unique=True
+    )
+    machine_type = ChainedForeignKey(
+        MachineType,
+        chained_field='gameplay_mode',
+        chained_model_field='gameplay_mode',
+        show_all=False,
+        auto_choose=False,
+        sort=True,
+        related_name='machines',
+        on_delete=models.CASCADE
+    )
     crafting_speed = models.DecimalField(max_digits=6, decimal_places=3)
+    power_usage_kW = models.IntegerField(blank=False, default=0)
+    tier = models.IntegerField(default=1, blank=False)
 
     def clean(self):
-        if self.item.gameplay_mode != self.machine_type.gameplay_mode:
+        if self.item.gameplay_mode != self.item.gameplay_mode:
             raise ValidationError(_('Machine requires item and machine_type to be from the same GameplayMode.'))
 
     def __str__(self):
@@ -91,9 +150,25 @@ class Recipe(models.Model):
     class Meta:
         verbose_name_plural = 'Recipes'
 
+    gameplay_mode = models.ForeignKey(GameplayMode, related_name='recipes', on_delete=models.CASCADE)
     name = models.CharField(max_length=128)
     crafting_time_ticks = models.IntegerField()
-    gameplay_mode = models.ForeignKey(GameplayMode, related_name='recipes', on_delete=models.CASCADE)
+    required_research = ChainedForeignKey(
+        Research,
+        chained_field='gameplay_mode',
+        chained_model_field='gameplay_mode',
+        show_all=False,
+        auto_choose=False,
+        sort=True,
+        related_name='unlocked_recipes',
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        default=None
+    )
+
+    def clean(self):
+        pass
 
     def __str__(self):
         return str(self.name)
@@ -102,8 +177,28 @@ class RecipeExecutor(models.Model):
     class Meta:
         verbose_name_plural = 'RecipeExecutors'
 
-    recipe = models.ForeignKey(Recipe, related_name='executors', on_delete=models.CASCADE)
-    machine_type = models.ForeignKey(MachineType, related_name='executors', on_delete=models.CASCADE)
+    gameplay_mode = models.ForeignKey(GameplayMode, on_delete=models.CASCADE)
+    recipe = ChainedForeignKey(
+        Recipe,
+        chained_field='gameplay_mode',
+        chained_model_field='gameplay_mode',
+        show_all=False,
+        auto_choose=False,
+        sort=True,
+        related_name='executors',
+        on_delete=models.CASCADE
+    )
+    machine_type = ChainedForeignKey(
+        MachineType,
+        chained_field='gameplay_mode',
+        chained_model_field='gameplay_mode',
+        show_all=False,
+        auto_choose=False,
+        sort=True,
+        related_name='executors',
+        on_delete=models.CASCADE
+    )
+    machine_tier_required = models.IntegerField(default=1, blank=False)
 
     def clean(self):
         if self.recipe.gameplay_mode != self.machine_type.gameplay_mode:
@@ -116,8 +211,26 @@ class RecipeIngredient(models.Model):
     class Meta:
         verbose_name_plural = 'RecipeIngredients'
 
-    recipe = models.ForeignKey(Recipe, related_name='ingredients', on_delete=models.CASCADE)
-    item = models.ForeignKey(Item, on_delete=models.CASCADE)
+    gameplay_mode = models.ForeignKey(GameplayMode, on_delete=models.CASCADE)
+    recipe = ChainedForeignKey(
+        Recipe,
+        chained_field='gameplay_mode',
+        chained_model_field='gameplay_mode',
+        show_all=False,
+        auto_choose=False,
+        sort=True,
+        related_name='ingredients',
+        on_delete=models.CASCADE
+    )
+    item = ChainedForeignKey(
+        Item,
+        chained_field='gameplay_mode',
+        chained_model_field='gameplay_mode',
+        show_all=False,
+        auto_choose=False,
+        sort=True,
+        on_delete=models.CASCADE
+    )
     count = models.IntegerField()
 
     def clean(self):
@@ -131,8 +244,27 @@ class RecipeResult(models.Model):
     class Meta:
         verbose_name_plural = 'RecipeResults'
 
-    recipe = models.ForeignKey(Recipe, related_name='results', on_delete=models.CASCADE)
-    item = models.ForeignKey(Item, related_name='recipe_results', on_delete=models.CASCADE)
+    gameplay_mode = models.ForeignKey(GameplayMode, on_delete=models.CASCADE)
+    recipe = ChainedForeignKey(
+        Recipe,
+        chained_field='gameplay_mode',
+        chained_model_field='gameplay_mode',
+        show_all=False,
+        auto_choose=False,
+        sort=True,
+        related_name='results',
+        on_delete=models.CASCADE
+    )
+    item = ChainedForeignKey(
+        Item,
+        chained_field='gameplay_mode',
+        chained_model_field='gameplay_mode',
+        show_all=False,
+        auto_choose=False,
+        sort=True,
+        related_name='recipe_results',
+        on_delete=models.CASCADE
+    )
     count = models.IntegerField()
 
     def clean(self):

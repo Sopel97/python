@@ -27,10 +27,12 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+USE_DJANGO_JQUERY = True
 
 # Application definition
 
 INSTALLED_APPS = [
+    'smart_selects',
     'crafting.apps.CraftingConfig',
     'django.contrib.admin',
     'django.contrib.auth',

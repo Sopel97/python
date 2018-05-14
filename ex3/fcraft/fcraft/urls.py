@@ -16,7 +16,12 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import include, path
 
+from django.conf.urls import include, url
+from django.contrib import admin
+
 urlpatterns = [
     path('crafting/', include('crafting.urls')),
-    path('admin/', admin.site.urls),
+
+    url(r'^admin/', admin.site.urls),
+    url(r'^chaining/', include('smart_selects.urls')),
 ]

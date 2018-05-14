@@ -1,2 +1,5 @@
 <p> Name: {{ recipe.name }} </p>
 <p> Crafting time: {{ crafting_time_ticks }} ticks = {{ crafting_time_seconds }} s</p>
+{% if item.required_research %}
+<p> Required research: {{ item.required_research.name }} </p>
+{% endif %}
