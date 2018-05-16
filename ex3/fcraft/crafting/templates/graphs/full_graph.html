@@ -1,0 +1,133 @@
+{% load static %}
+
+<!doctype html>
+<html>
+<head>
+  <title>Network | Basic usage</title>
+
+  <script src="{% static "vis/dist/vis.js" %}"></script>
+  <link href="{% static "vis/dist/vis-timeline-graph2d.min.css" %}" rel="stylesheet" type="text/css" />
+
+  <style>
+    body {
+      color: #d3d3d3;
+      font: 12pt arial;
+      background-color: #222222;
+    }
+
+    #mynetwork {
+      width: 800px;
+      height: 800px;
+      border: 1px solid #444444;
+      background-color: #222222;
+    }
+  </style>
+  <style type="text/css">
+    #mynetwork {
+      width: 600px;
+      height: 400px;
+      border: 1px solid lightgray;
+    }
+  </style>
+</head>
+<body>
+
+<p>
+  There are a lot of options with arrows! They can also be combined with dashed lines.
+</p>
+
+<div id="mynetwork"></div>
+
+<script type="text/javascript">
+  // create an array with nodes
+
+    var nodes = [
+        {id: 0, label: "0", group: 'machine'},
+        {id: 1, label: "1", group: 'machine'},
+        {id: 2, label: "2", group: 'machine'},
+        {id: 3, label: "3", group: 'machine'},
+        {id: 4, label: "4", group: 'machine'},
+        {id: 5, label: "5", group: 'machine'},
+        {id: 6, label: "6", group: 'machine'},
+        {id: 7, label: "7", group: 'machine'},
+        {id: 8, label: "8", group: 'machine'},
+        {id: 9, label: "9", group: 'machine'},
+        {id: 10, label: "10", group: 'item'},
+        {id: 11, label: "11", group: 'item'},
+        {id: 12, label: "12", group: 'item'},
+        {id: 13, label: "13", group: 'item'},
+        {id: 14, label: "14", group: 'item'},
+        {id: 15, group: 'item'},
+        {id: 16, group: 'item'},
+        {id: 17, group: 'item'},
+        {id: 18, group: 'item'},
+        {id: 19, group: 'item'},
+        {id: 20, label: "diamonds", group: 'machine'},
+        {id: 21, label: "diamonds", group: 'machine'},
+        {id: 22, label: "diamonds", group: 'machine'},
+        {id: 23, label: "diamonds", group: 'machine'},
+    ];
+    var edges = [
+        {from: 1, to: 0, arrows: 'to', label: '1.5/s'},
+        {from: 2, to: 0, arrows: 'to'},
+        {from: 4, to: 3, arrows: 'to'},
+        {from: 5, to: 4, arrows: 'to'},
+        {from: 4, to: 0, arrows: 'to'},
+        {from: 7, to: 6, arrows: 'to'},
+        {from: 8, to: 7, arrows: 'to'},
+        {from: 7, to: 0, arrows: 'to'},
+        {from: 10, to: 9, arrows: 'to'},
+        {from: 11, to: 10, arrows: 'to'},
+        {from: 10, to: 4, arrows: 'to'},
+        {from: 13, to: 12, arrows: 'to'},
+        {from: 14, to: 13, arrows: 'to'},
+        {from: 13, to: 0, arrows: 'to'},
+        {from: 16, to: 15, arrows: 'to'},
+        {from: 17, to: 15, arrows: 'to'},
+        {from: 15, to: 10, arrows: 'to'},
+        {from: 19, to: 18, arrows: 'to'},
+        {from: 20, to: 19, arrows: 'to'},
+        {from: 19, to: 4, arrows: 'to'},
+        {from: 22, to: 21, arrows: 'to'},
+        {from: 23, to: 22, arrows: 'to'},
+        {from: 23, to: 0, arrows: 'to'},
+    ]
+
+    // create a network
+    var container = document.getElementById('mynetwork');
+    var data = {
+        nodes: nodes,
+        edges: edges
+    };
+    var options = {
+        nodes: {
+            shape: 'dot',
+            size: 20,
+            font: {
+                size: 15,
+                color: '#ffffff'
+            },
+            borderWidth: 2
+        },
+        edges: {
+            width: 2
+        },
+        groups: {
+            machine: {
+                color: {background:'red',border:'white'},
+                shape: 'box'
+            },
+            item: {
+                shape: 'ellipse',
+                color: 'cyan'
+            }
+        }
+    };
+    var network = new vis.Network(container, data, options);
+
+
+</script>
+
+
+</body>
+</html>

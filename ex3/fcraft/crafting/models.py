@@ -109,6 +109,110 @@ class MachineType(models.Model):
     def __str__(self):
         return str(self.name)
 
+class FiniteResourceType(models.Model):
+    class Meta:
+        verbose_name_plural = 'FiniteResourceTypes'
+
+    gameplay_mode = models.ForeignKey(GameplayMode, related_name='finite_resource_types', on_delete=models.CASCADE)
+    name = models.CharField(max_length=128)
+
+    def __str__(self):
+        return str(self.name)
+
+class FiniteResource(models.Model):
+    class Meta:
+        verbose_name_plural = 'FiniteResources'
+
+    gameplay_mode = models.ForeignKey(GameplayMode, related_name='finite_resources', on_delete=models.CASCADE)
+    item = ChainedForeignKey(
+        Item,
+        chained_field='gameplay_mode',
+        chained_model_field='gameplay_mode',
+        show_all=False,
+        auto_choose=False,
+        sort=True,
+        related_name='finite_resource',
+        on_delete=models.CASCADE,
+        unique=True
+    )
+    finite_resource_type = ChainedForeignKey(
+        FiniteResourceType,
+        chained_field='gameplay_mode',
+        chained_model_field='gameplay_mode',
+        show_all=False,
+        auto_choose=False,
+        sort=True,
+        related_name='finite_resources',
+        on_delete=models.CASCADE
+    )
+    mining_hardness = models.DecimalField(max_digits=6, decimal_places=3)
+    mining_time = models.DecimalField(max_digits=6, decimal_places=3)
+
+    def __str__(self):
+        return str(self.item.name)
+
+class FiniteResourceCollectionIngredient(models.Model):
+    class Meta:
+        verbose_name_plural = 'FiniteResourceCollectionIngredients'
+
+    gameplay_mode = models.ForeignKey(GameplayMode, on_delete=models.CASCADE)
+    resource = ChainedForeignKey(
+        FiniteResource,
+        chained_field='gameplay_mode',
+        chained_model_field='gameplay_mode',
+        show_all=False,
+        auto_choose=False,
+        sort=True,
+        related_name='collection_ingredients',
+        on_delete=models.CASCADE
+    )
+    item = ChainedForeignKey(
+        Item,
+        chained_field='gameplay_mode',
+        chained_model_field='gameplay_mode',
+        show_all=False,
+        auto_choose=False,
+        sort=True,
+        on_delete=models.CASCADE
+    )
+    count = models.IntegerField()
+
+    def __str__(self):
+        return '{0} resource collection requires {1}x{2}'.format(str(self.resource), str(self.count), str(self.item))
+
+class FiniteResourceCollector(models.Model):
+    class Meta:
+        verbose_name_plural = 'FiniteResourceCollectors'
+
+    gameplay_mode = models.ForeignKey(GameplayMode, related_name='resource_collectors', on_delete=models.CASCADE)
+    item = ChainedForeignKey(
+        Item,
+        chained_field='gameplay_mode',
+        chained_model_field='gameplay_mode',
+        show_all=False,
+        auto_choose=False,
+        sort=True,
+        related_name='finite_resource_collector',
+        on_delete=models.CASCADE,
+        unique=True
+    )
+    finite_resource_type = ChainedForeignKey(
+        FiniteResourceType,
+        chained_field='gameplay_mode',
+        chained_model_field='gameplay_mode',
+        show_all=False,
+        auto_choose=False,
+        sort=True,
+        related_name='finite_resource_collectors',
+        on_delete=models.CASCADE
+    )
+    mining_power = models.DecimalField(max_digits=6, decimal_places=3)
+    mining_speed = models.DecimalField(max_digits=6, decimal_places=3)
+    power_usage_kW = models.IntegerField(blank=False, default=0)
+    tier = models.IntegerField(default=1, blank=False)
+
+    def __str__(self):
+        return str(self.item)
 
 class Machine(models.Model):
     class Meta:
@@ -122,6 +226,7 @@ class Machine(models.Model):
         show_all=False,
         auto_choose=False,
         sort=True,
+        related_name='machine',
         on_delete=models.CASCADE,
         unique=True
     )

@@ -45,8 +45,23 @@ def gameplay_modes(request):
 
     return HttpResponse(template.render(context, request))
 
-def graph(request, gameplay_mode_id):
-    return HttpResponse('graph for ' + str(gameplay_mode_id))
+def graphs(request, gameplay_mode_id):
+    template = loader.get_template('graphs/graphs.html')
+
+    context = {
+        'gameplay_mode_id' : gameplay_mode_id
+    }
+
+    return HttpResponse(template.render(context, request))
+
+def full_graph(request, gameplay_mode_id):
+    template = loader.get_template('graphs/full_graph.html')
+
+    context = {
+        'gameplay_mode_id' : gameplay_mode_id
+    }
+
+    return HttpResponse(template.render(context, request))
 
 def items(request, gameplay_mode_id):
     item_list = get_object_or_404(GameplayMode, pk=gameplay_mode_id).items.all()

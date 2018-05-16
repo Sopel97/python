@@ -47,6 +47,16 @@ class ItemInline(admin.TabularInline):
     extra = 0
     show_change_link = True
 
+class FiniteResourceInline(admin.TabularInline):
+    model = FiniteResource
+    extra = 0
+    show_change_link = True
+
+class FiniteResourceCollectorInline(admin.TabularInline):
+    model = FiniteResourceCollector
+    extra = 0
+    show_change_link = True
+
 class ItemAdmin(admin.ModelAdmin):
     fieldsets = (
         (
@@ -65,7 +75,7 @@ class ItemAdmin(admin.ModelAdmin):
 
     list_filter = ('gameplay_mode',)
 
-    inlines = [MachineInline]
+    inlines = [MachineInline, FiniteResourceInline, FiniteResourceCollectorInline]
 
 admin.site.register(Item, ItemAdmin)
 
@@ -167,3 +177,84 @@ class GameplayModeAdmin(admin.ModelAdmin):
     inlines = [ItemInline, MachineTypeInline, MachineInline, RecipeInline, ResearchInline]
 
 admin.site.register(GameplayMode, GameplayModeAdmin)
+
+class FiniteResourceCollectionIngredientInline(admin.TabularInline):
+    model = FiniteResourceCollectionIngredient
+    extra = 0
+    show_change_link = True
+
+class FiniteResourceAdmin(admin.ModelAdmin):
+    fieldsets = (
+        (
+            'Gameplay Mode',
+            {
+                'fields' : ('gameplay_mode',)
+            }
+        ),
+        (
+            'Properties',
+            {
+                'fields' : ('finite_resource_type', 'item', 'mining_hardness', 'mining_time')
+            }
+        )
+    )
+
+    list_filter = ('gameplay_mode',)
+
+    inlines = [FiniteResourceCollectionIngredientInline]
+
+admin.site.register(FiniteResource, FiniteResourceAdmin)
+
+class FiniteResourceTypeInline(admin.TabularInline):
+    model = FiniteResourceType
+    extra = 0
+    show_change_link = True
+
+class FiniteResourceCollectorInline(admin.TabularInline):
+    model = FiniteResourceCollector
+    extra = 0
+    show_change_link = True
+
+class FiniteResourceTypeAdmin(admin.ModelAdmin):
+    fieldsets = (
+        (
+            'Gameplay Mode',
+            {
+                'fields' : ('gameplay_mode',)
+            }
+        ),
+        (
+            'Properties',
+            {
+                'fields' : ('name',)
+            }
+        )
+    )
+
+    list_filter = ('gameplay_mode',)
+
+    inlines = [FiniteResourceInline, FiniteResourceCollectorInline]
+
+admin.site.register(FiniteResourceType, FiniteResourceTypeAdmin)
+
+admin.site.register(FiniteResourceCollectionIngredient)
+
+class FiniteResourceCollectorAdmin(admin.ModelAdmin):
+    fieldsets = (
+        (
+            'Gameplay Mode',
+            {
+                'fields' : ('gameplay_mode',)
+            }
+        ),
+        (
+            'Properties',
+            {
+                'fields' : ('finite_resource_type', 'item', 'mining_power', 'mining_speed', 'power_usage_kW', 'tier')
+            }
+        )
+    )
+
+    list_filter = ('gameplay_mode',)
+
+admin.site.register(FiniteResourceCollector, FiniteResourceCollectorAdmin)

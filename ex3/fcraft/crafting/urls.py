@@ -11,7 +11,8 @@ urlpatterns = [
 
     path('<int:gameplay_mode_id>/', views.gameplay_mode, name='gameplay_mode'),
 
-    path('<int:gameplay_mode_id>/graph/', views.graph, name='graph'),
+    path('<int:gameplay_mode_id>/graphs/', views.graphs, name='graph'),
+    path('<int:gameplay_mode_id>/graphs/full/', views.full_graph, name='full_graph'),
 
     path('<int:gameplay_mode_id>/items/', views.items, name='items'),
     path('<int:gameplay_mode_id>/items/<int:item_id>/', views.item, name='item'),
