@@ -4,6 +4,7 @@ from django.shortcuts import get_object_or_404
 from django.core.exceptions import ObjectDoesNotExist
 
 from .models import *
+from .services.graph import *
 
 def get_object_or_None(klass, *args, **kwargs):
     """
@@ -54,11 +55,94 @@ def graphs(request, gameplay_mode_id):
 
     return HttpResponse(template.render(context, request))
 
+def create_full_graph(gameplay_mode_id):
+    g = Graph()
+    machine_group = g.create_node_group(name='machine', shape='box', color='yellow')
+    item_group = g.create_node_group(name='item', shape='ellipse', color='#aaaaaa')
+    collector_group = g.create_node_group(name='collector', shape='box', color='red')
+    default_node_group = g.get_default_node_group()
+    default_edge_group = g.get_default_edge_group()
+
+    g.options['nodes.shape'] = 'dot'
+    g.options['nodes.size'] = 20
+    g.options['edges.arrows'] = 'to'
+    g.options['edges.font.strokeWidth'] = 0
+    g.options['edges.font.color'] = '#cccccc'
+    g.options['edges.font.size'] = 14
+    g.options['edges.font.align'] = 'top'
+    g.options['edges.length'] = 150
+    g.options['edges.smooth.type'] = 'continuous'
+    g.options['layout.hierarchical.enabled'] = True
+    g.options['layout.hierarchical.sortMethod'] = 'directed'
+    g.options['layout.hierarchical.direction'] = 'UD'
+    g.options['layout.hierarchical.parentCentralization'] = False
+    g.options['layout.hierarchical.treeSpacing'] = 250
+    g.options['layout.hierarchical.nodeSpacing'] = 200
+    g.options['configure.enabled'] = False
+    #g.options['configure.filter'] = 'nodes,edges'
+    g.options['manipulation.enabled'] = True
+    g.options['manipulation.deleteNode'] = True
+    g.options['manipulation.addNode'] = False
+    g.options['manipulation.addEdge'] = False
+    g.options['manipulation.deleteEdge'] = False
+    g.options['interaction.multiselect'] = True
+    g.options['physics'] = False
+
+    for item in Item.objects.filter(gameplay_mode__id=gameplay_mode_id):
+        node_id = item.id
+        item_group.create_node(node_id, label=item.name)
+
+    best_machines = dict()
+    for machine_type in MachineType.objects.filter(gameplay_mode__id=gameplay_mode_id):
+        machines = machine_type.machines
+        best_machines[machine_type.id] = max(machines.filter(gameplay_mode__id=gameplay_mode_id), key=lambda m: m.tier)
+
+    best_collectors = dict()
+    for resource_type in FiniteResourceType.objects.filter(gameplay_mode__id=gameplay_mode_id):
+        collectors = resource_type.finite_resource_collectors
+        best_collectors[resource_type.id] = max(collectors.filter(gameplay_mode__id=gameplay_mode_id), key=lambda m: m.tier)
+
+    for finite_resource in FiniteResource.objects.filter(gameplay_mode__id=gameplay_mode_id):
+        resource_type = finite_resource.finite_resource_type
+        collector = best_collectors[resource_type.id]
+        node_id = 'f{}'.format(finite_resource.id)
+        collector_group.create_node(node_id, label=collector.item.name)
+
+        collection_rate_rps = float((collector.mining_power - finite_resource.mining_hardness) * (collector.mining_speed / finite_resource.mining_time))
+
+        for ingredient in finite_resource.collection_ingredients.filter(gameplay_mode__id=gameplay_mode_id):
+            rate = float(collection_rate_rps*ingredient.count)
+            default_edge_group.create_edge(ingredient.item.id, node_id, label='{:.3f}/s'.format(rate), transfer_rate=rate, base_transfer_rate=rate)
+
+        default_edge_group.create_edge(node_id, finite_resource.item.id, label='{:.3f}/s'.format(collection_rate_rps), transfer_rate=collection_rate_rps, base_transfer_rate=collection_rate_rps)
+
+
+    for recipe in Recipe.objects.filter(gameplay_mode__id=gameplay_mode_id):
+        machine_type = recipe.executors.first().machine_type
+        machine = best_machines[machine_type.id]
+        node_id = 'r{}'.format(recipe.id)
+        machine_group.create_node(node_id, label=machine.item.name)
+
+        making_time_s = (float(recipe.crafting_time_ticks) / 60) / float(machine.crafting_speed)
+
+        for ingredient in recipe.ingredients.filter(gameplay_mode__id=gameplay_mode_id):
+            rate = float((1/making_time_s)*ingredient.count)
+            default_edge_group.create_edge(ingredient.item.id, node_id, label='{:.3f}/s'.format(rate), transfer_rate=rate, base_transfer_rate=rate)
+
+        for result in recipe.results.filter(gameplay_mode__id=gameplay_mode_id):
+            rate = float((1/making_time_s)*result.count)
+            default_edge_group.create_edge(node_id, result.item.id, label='{:.3f}/s'.format(rate), transfer_rate=rate, base_transfer_rate=rate)
+
+    return g
+
 def full_graph(request, gameplay_mode_id):
     template = loader.get_template('graphs/full_graph.html')
 
+    g = create_full_graph(gameplay_mode_id)
+
     context = {
-        'gameplay_mode_id' : gameplay_mode_id
+        'gameplay_mode_id' : gameplay_mode_id,
+        'graph' : g.to_vis_js_format('mynetwork')
     }
 
     return HttpResponse(template.render(context, request))

@@ -3,10 +3,10 @@
 <!doctype html>
 <html>
 <head>
-  <title>Network | Basic usage</title>
+  <title>Full Graph</title>
 
   <script src="{% static "vis/dist/vis.js" %}"></script>
-  <link href="{% static "vis/dist/vis-timeline-graph2d.min.css" %}" rel="stylesheet" type="text/css" />
+  <link href="{% static "vis/dist/vis-network.min.css" %}" rel="stylesheet" type="text/css" />
 
   <style>
     body {
@@ -16,17 +16,10 @@
     }
 
     #mynetwork {
-      width: 800px;
-      height: 800px;
+      width: 100%;
+      height: 90vh;
       border: 1px solid #444444;
       background-color: #222222;
-    }
-  </style>
-  <style type="text/css">
-    #mynetwork {
-      width: 600px;
-      height: 400px;
-      border: 1px solid lightgray;
     }
   </style>
 </head>
@@ -35,96 +28,227 @@
 <p>
   There are a lot of options with arrows! They can also be combined with dashed lines.
 </p>
-
+<input type="text" id="search" placeholder="serach"/>
+<input type="button" onclick="run_search()" value="find and focus"/>
+<input type="number" id="desired_output" placeholder="desired output per second" style="margin-left:50px"/>
+<input type="button" onclick="set_desired_output()" value="set desired output"/>
 <div id="mynetwork"></div>
 
 <script type="text/javascript">
-  // create an array with nodes
 
-    var nodes = [
-        {id: 0, label: "0", group: 'machine'},
-        {id: 1, label: "1", group: 'machine'},
-        {id: 2, label: "2", group: 'machine'},
-        {id: 3, label: "3", group: 'machine'},
-        {id: 4, label: "4", group: 'machine'},
-        {id: 5, label: "5", group: 'machine'},
-        {id: 6, label: "6", group: 'machine'},
-        {id: 7, label: "7", group: 'machine'},
-        {id: 8, label: "8", group: 'machine'},
-        {id: 9, label: "9", group: 'machine'},
-        {id: 10, label: "10", group: 'item'},
-        {id: 11, label: "11", group: 'item'},
-        {id: 12, label: "12", group: 'item'},
-        {id: 13, label: "13", group: 'item'},
-        {id: 14, label: "14", group: 'item'},
-        {id: 15, group: 'item'},
-        {id: 16, group: 'item'},
-        {id: 17, group: 'item'},
-        {id: 18, group: 'item'},
-        {id: 19, group: 'item'},
-        {id: 20, label: "diamonds", group: 'machine'},
-        {id: 21, label: "diamonds", group: 'machine'},
-        {id: 22, label: "diamonds", group: 'machine'},
-        {id: 23, label: "diamonds", group: 'machine'},
-    ];
-    var edges = [
-        {from: 1, to: 0, arrows: 'to', label: '1.5/s'},
-        {from: 2, to: 0, arrows: 'to'},
-        {from: 4, to: 3, arrows: 'to'},
-        {from: 5, to: 4, arrows: 'to'},
-        {from: 4, to: 0, arrows: 'to'},
-        {from: 7, to: 6, arrows: 'to'},
-        {from: 8, to: 7, arrows: 'to'},
-        {from: 7, to: 0, arrows: 'to'},
-        {from: 10, to: 9, arrows: 'to'},
-        {from: 11, to: 10, arrows: 'to'},
-        {from: 10, to: 4, arrows: 'to'},
-        {from: 13, to: 12, arrows: 'to'},
-        {from: 14, to: 13, arrows: 'to'},
-        {from: 13, to: 0, arrows: 'to'},
-        {from: 16, to: 15, arrows: 'to'},
-        {from: 17, to: 15, arrows: 'to'},
-        {from: 15, to: 10, arrows: 'to'},
-        {from: 19, to: 18, arrows: 'to'},
-        {from: 20, to: 19, arrows: 'to'},
-        {from: 19, to: 4, arrows: 'to'},
-        {from: 22, to: 21, arrows: 'to'},
-        {from: 23, to: 22, arrows: 'to'},
-        {from: 23, to: 0, arrows: 'to'},
-    ]
+  {{graph|safe}}
 
-    // create a network
-    var container = document.getElementById('mynetwork');
-    var data = {
-        nodes: nodes,
-        edges: edges
-    };
-    var options = {
-        nodes: {
-            shape: 'dot',
-            size: 20,
-            font: {
-                size: 15,
-                color: '#ffffff'
-            },
-            borderWidth: 2
-        },
-        edges: {
-            width: 2
-        },
-        groups: {
-            machine: {
-                color: {background:'red',border:'white'},
-                shape: 'box'
-            },
-            item: {
-                shape: 'ellipse',
-                color: 'cyan'
-            }
+  is_visible = function(node) {
+    return node.hidden === undefined || node.hidden == false;
+  };
+
+  get_visible_node_ids = function() {
+    return nodes.getIds({filter:is_visible});
+  };
+
+  calculate_cumulative_rps = function() {
+    visible_node_ids = new Set(get_visible_node_ids());
+    stack = [];
+    for(id of visible_node_ids) {
+      stack.push(id);
+    }
+
+    new_edge_rps = new vis.DataSet();
+
+    visited = new Set();
+    calculated = new Set();
+    while (stack.length > 0) {
+      current_node_id = stack.pop();
+      if (calculated.has(current_node_id)) continue;
+
+      if (visited.has(current_node_id)) {
+        // visited but not yet calculated
+
+        edge_ids = network.getConnectedEdges(current_node_id);
+        in_edges = [];
+        out_edges = [];
+        for (i = 0; i < edge_ids.length; ++i) {
+          edge_id = edge_ids[i];
+          edge = edges.get(edge_id);
+          if (edge.from == current_node_id && visible_node_ids.has(edge.to)) {
+            out_edges.push(edge);
+          }
+          if (edge.to == current_node_id && visible_node_ids.has(edge.from)) {
+            in_edges.push(edge);
+          }
         }
-    };
-    var network = new vis.Network(container, data, options);
 
+        node = nodes.get(current_node_id);
+        if (node.group == 'item') {
+          cumulative_output = 0;
+          for (i = 0; i < out_edges.length; ++i) {
+            edge = out_edges[i];
+            cumulative_output += edge.transfer_rate;
+          }
+          if (cumulative_output == 0) cumulative_output = node.desired_output_per_s || 1;
+
+          cumulative_input = 0;
+          for (i = 0; i < in_edges.length; ++i) {
+            edge = in_edges[i];
+            cumulative_input += edge.transfer_rate;
+          }
+
+          multiplier = cumulative_output / cumulative_input;
+
+          for (i = 0; i < in_edges.length; ++i) {
+            edge = in_edges[i];
+            edge.transfer_rate *= multiplier;
+          }
+        } else if (node.group == 'machine' || node.group == 'collector') {
+          biggest_multiplier = 0;
+          for (i = 0; i < out_edges.length; ++i) {
+            edge = out_edges[i];
+            multiplier = edge.transfer_rate / edge.base_transfer_rate;
+            if (multiplier > biggest_multiplier) {
+              biggest_multiplier = multiplier;
+            }
+          }
+
+          for (i = 0; i < in_edges.length; ++i) {
+            edge = in_edges[i];
+            edge.transfer_rate = edge.base_transfer_rate * biggest_multiplier;
+          }
+
+          for (i = 0; i < out_edges.length; ++i) {
+            edge = out_edges[i];
+            overflow = edge.base_transfer_rate * biggest_multiplier - edge.transfer_rate;
+            if (overflow > 0.001) {
+              edge.label = [String(edge.transfer_rate.toFixed(3)), '/s + ', overflow.toFixed(3), '/s'].join('')
+            }
+          }
+
+          node_label = node.label;
+          idx = node_label.indexOf(' [');
+          if (idx != -1) {
+            node_label = node_label.substring(0, idx);
+          }
+          node_label = node_label.concat(' [x', biggest_multiplier.toFixed(2), ']');
+          node.label = node_label;
+          nodes.update(node);
+        }
+
+        for (i = 0; i < in_edges.length; ++i) {
+          edge = in_edges[i];
+          edge.label = [String(edge.transfer_rate.toFixed(3)), '/s'].join('')
+        }
+
+        edges.update(in_edges);
+        edges.update(out_edges);
+
+        calculated.add(current_node_id);
+        continue;
+      }
+      visited.add(current_node_id);
+
+      children_ids = network.getConnectedNodes(current_node_id, 'to');
+
+      stack.push(current_node_id);
+      for (i = 0; i < children_ids.length; ++i) {
+        child_node_id = children_ids[i];
+        if (visible_node_ids.has(child_node_id)) {
+          stack.push(child_node_id);
+        }
+      }
+    }
+  };
+
+  nodes.on('remove', function (event, properties, senderId) {
+    calculate_cumulative_rps();
+  });
+
+  var keys = vis.keycharm({
+    container: document.getElementById('body'),
+    preventDefault: false
+  });
+  keys.bind("delete", function(event) {
+    network.deleteSelected()
+  });
+
+
+  show_only_related_to_node = function(node) {
+    stack = [node.id];
+    visited = new Set();
+    while (stack.length > 0) {
+      current_node_id = stack.pop();
+      if (visited.has(current_node_id)) continue;
+      visited.add(current_node_id);
+
+      parent_node_ids = network.getConnectedNodes(current_node_id, 'from');
+      for (i = 0; i < parent_node_ids.length; ++i) {
+        node_id = parent_node_ids[i];
+        stack.push(node_id);
+      }
+    }
+
+    nodes.forEach(function(node) {
+      if (visited.has(node.id)) return;
+
+      nodes.update({id:node.id, hidden: true});
+    });
+
+    calculate_cumulative_rps();
+  };
+
+  make_all_nodes_visible = function() {
+    nodes.forEach(function(node) {
+      nodes.update({id:node.id, hidden: false});
+    });
+
+    calculate_cumulative_rps();
+  };
+
+  network.on("doubleClick", function (params) {
+    params.event = "[original event]";
+    if (params.nodes.length > 0 && nodes.get(params.nodes[0]).group == 'item') {
+      show_only_related_to_node(nodes.get(params.nodes[0]))
+      network.focus(nodes.get(params.nodes[0]).id)
+    } else {
+      make_all_nodes_visible()
+      network.fit();
+    }
+  });
+
+  last_text = null
+  matched_ids = []
+  last_index = 0
+  run_search = function() {
+    text = document.getElementById('search').value.toLowerCase();
+    if (text.length == 0) return;
+    if (last_text != null && last_text === text) {
+      ++last_index;
+      if (last_index >= matched_ids.length) {
+        last_index = 0;
+      }
+      network.focus(matched_ids[last_index], {scale:1});
+    } else {
+      last_text = text;
+      matched_ids = nodes.getIds({filter:function(node){return is_visible(node) && node.label.toLowerCase().indexOf(text) != -1;}});
+      if (matched_ids.length == 0) {
+        return;
+      }
+
+      last_index = 0;
+      network.focus(matched_ids[last_index], {scale:1});
+    }
+  };
+
+  set_desired_output = function() {
+    count = parseFloat(document.getElementById('desired_output').value);
+    selected_nodes = network.getSelectedNodes();
+    for (i = 0; i < selected_nodes.length; ++i) {
+      node_id = selected_nodes[i];
+      nodes.update({id:node_id, desired_output_per_s:count});
+    }
+
+    calculate_cumulative_rps();
+  };
+
+  calculate_cumulative_rps();
 
 </script>
 
