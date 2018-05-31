@@ -1,3 +1,7 @@
+{% extends "base.html" %}
+
+{% block content %}
+
 {% if research_list %}
     <ul>
     {% for research in research_list %}
@@ -5,3 +9,5 @@
     {% endfor %}
     </ul>
 {% endif %}
+
+{% endblock %}

@@ -21,6 +21,7 @@ from django.contrib import admin
 
 urlpatterns = [
     path('crafting/', include('crafting.urls')),
+    path('accounts/', include('django.contrib.auth.urls')),
 
     url(r'^admin/', admin.site.urls),
     url(r'^chaining/', include('smart_selects.urls')),

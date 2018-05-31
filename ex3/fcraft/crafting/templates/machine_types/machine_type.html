@@ -1,9 +1,24 @@
+{% extends "base.html" %}
+
+{% block content %}
+
 <p> Name: {{ machine_type.name }} </p>
-<p> Machines of this type: </p>
 {% if machine_list %}
+<p> Machines of this type: </p>
     <ul>
     {% for machine in machine_list %}
         <li><a href="{% url 'crafting:machine' gameplay_mode_id machine.id %}"> {{ machine.item.name }}</a></li>
     {% endfor %}
     </ul>
 {% endif %}
+
+{% if executors %}
+<p>Executable recipes:</p>
+    <ul>
+    {% for executor in executors %}
+        <li><a href="{% url 'crafting:recipe' gameplay_mode_id executor.recipe.id %}"> {{ executor.recipe.name }} (tier {{ executor.machine_tier_required }})</a></li>
+    {% endfor %}
+    </ul>
+{% endif %}
+
+{% endblock %}

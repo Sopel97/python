@@ -1,3 +1,7 @@
+{% extends "base.html" %}
+
+{% block content %}
+
 <p> Name: {{ gameplay_mode.name }} </p>
 
 <p>
@@ -23,3 +27,5 @@
 <p>
     <a href="{% url 'crafting:machine_types' gameplay_mode.id %}"> Machine Types </a>
 </p>
+
+{% endblock %}

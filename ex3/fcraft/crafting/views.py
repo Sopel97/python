@@ -2,6 +2,7 @@ from django.http import HttpResponse
 from django.template import loader
 from django.shortcuts import get_object_or_404
 from django.core.exceptions import ObjectDoesNotExist
+from django.urls import reverse
 
 from .models import *
 from .services.graph import *
@@ -30,7 +31,8 @@ def gameplay_mode(request, gameplay_mode_id):
     template = loader.get_template('gameplay_mode.html')
 
     context = {
-        'gameplay_mode' : gameplay_mode
+        'gameplay_mode' : gameplay_mode,
+        'url' : reverse('crafting:gameplay_modes')
     }
 
     return HttpResponse(template.render(context, request))
@@ -50,7 +52,8 @@ def graphs(request, gameplay_mode_id):
     template = loader.get_template('graphs/graphs.html')
 
     context = {
-        'gameplay_mode_id' : gameplay_mode_id
+        'gameplay_mode_id' : gameplay_mode_id,
+        'url' : reverse('crafting:gameplay_mode', args=[gameplay_mode_id])
     }
 
     return HttpResponse(template.render(context, request))
@@ -118,8 +121,12 @@ def create_full_graph(gameplay_mode_id):
 
 
     for recipe in Recipe.objects.filter(gameplay_mode__id=gameplay_mode_id):
-        machine_type = recipe.executors.first().machine_type
+        executor = recipe.executors.first()
+        machine_type = executor.machine_type
         machine = best_machines[machine_type.id]
+        if machine.tier < executor.machine_tier_required:
+            continue
+
         node_id = 'r{}'.format(recipe.id)
         machine_group.create_node(node_id, label=machine.item.name)
 
@@ -142,7 +149,8 @@ def full_graph(request, gameplay_mode_id):
 
     context = {
         'gameplay_mode_id' : gameplay_mode_id,
-        'graph' : g.to_vis_js_format('mynetwork')
+        'graph' : g.to_vis_js_format('mynetwork'),
+        'url' : reverse('crafting:graphs', args=[gameplay_mode_id])
     }
 
     return HttpResponse(template.render(context, request))
@@ -154,7 +162,8 @@ def items(request, gameplay_mode_id):
 
     context = {
         'item_list' : item_list,
-        'gameplay_mode_id' : gameplay_mode_id
+        'gameplay_mode_id' : gameplay_mode_id,
+        'url' : reverse('crafting:gameplay_mode', args=[gameplay_mode_id])
     }
 
     return HttpResponse(template.render(context, request))
@@ -166,8 +175,12 @@ def item(request, gameplay_mode_id, item_id):
     template = loader.get_template('items/item.html')
 
     context = {
+        'gameplay_mode_id' : gameplay_mode_id,
         'item' : item,
-        'machine' : machine
+        'machine' : machine,
+        'url' : reverse('crafting:items', args=[gameplay_mode_id]),
+        'ingredient_in_recipes' : item.recipe_ingredients.all(),
+        'result_in_recipes' : item.recipe_results.all()
     }
 
     return HttpResponse(template.render(context, request))
@@ -179,7 +192,8 @@ def researches(request, gameplay_mode_id):
 
     context = {
         'research_list' : research_list,
-        'gameplay_mode_id' : gameplay_mode_id
+        'gameplay_mode_id' : gameplay_mode_id,
+        'url' : reverse('crafting:gameplay_mode', args=[gameplay_mode_id])
     }
 
     return HttpResponse(template.render(context, request))
@@ -194,7 +208,8 @@ def research(request, gameplay_mode_id, research_id):
     context = {
         'research' : research,
         'gameplay_mode_id' : gameplay_mode_id,
-        'unlocked_item_list' : unlocked_item_list
+        'unlocked_item_list' : unlocked_item_list,
+        'url' : reverse('crafting:researches', args=[gameplay_mode_id])
     }
 
     return HttpResponse(template.render(context, request))
@@ -208,7 +223,8 @@ def machines(request, gameplay_mode_id):
 
     context = {
         'machine_list' : machine_list,
-        'gameplay_mode_id' : gameplay_mode_id
+        'gameplay_mode_id' : gameplay_mode_id,
+        'url' : reverse('crafting:gameplay_mode', args=[gameplay_mode_id])
     }
 
     return HttpResponse(template.render(context, request))
@@ -220,7 +236,8 @@ def machine(request, gameplay_mode_id, machine_id):
 
     context = {
         'machine' : machine,
-        'gameplay_mode_id' : gameplay_mode_id
+        'gameplay_mode_id' : gameplay_mode_id,
+        'url' : reverse('crafting:machines', args=[gameplay_mode_id])
     }
 
     return HttpResponse(template.render(context, request))
@@ -232,7 +249,8 @@ def recipes(request, gameplay_mode_id):
 
     context = {
         'recipe_list' : recipe_list,
-        'gameplay_mode_id' : gameplay_mode_id
+        'gameplay_mode_id' : gameplay_mode_id,
+        'url' : reverse('crafting:gameplay_mode', args=[gameplay_mode_id])
     }
 
     return HttpResponse(template.render(context, request))
@@ -243,9 +261,14 @@ def recipe(request, gameplay_mode_id, recipe_id):
     template = loader.get_template('recipes/recipe.html')
 
     context = {
+    'gameplay_mode_id' : gameplay_mode_id,
         'recipe' : recipe,
         'crafting_time_ticks' : recipe.crafting_time_ticks,
-        'crafting_time_seconds' : recipe.crafting_time_ticks / 60
+        'crafting_time_seconds' : recipe.crafting_time_ticks / 60,
+        'url' : reverse('crafting:recipes', args=[gameplay_mode_id]),
+        'executors' : recipe.executors.all(),
+        'ingredients' : recipe.ingredients.all(),
+        'results' : recipe.results.all()
     }
 
     return HttpResponse(template.render(context, request))
@@ -257,7 +280,8 @@ def machine_types(request, gameplay_mode_id):
 
     context = {
         'machine_type_list' : machine_type_list,
-        'gameplay_mode_id' : gameplay_mode_id
+        'gameplay_mode_id' : gameplay_mode_id,
+        'url' : reverse('crafting:gameplay_mode', args=[gameplay_mode_id])
     }
 
     return HttpResponse(template.render(context, request))
@@ -272,7 +296,9 @@ def machine_type(request, gameplay_mode_id, machine_type_id):
     context = {
         'machine_type' : machine_type,
         'gameplay_mode_id' : gameplay_mode_id,
-        'machine_list' : machine_list
+        'machine_list' : machine_list,
+        'url' : reverse('crafting:machine_types', args=[gameplay_mode_id]),
+        'executors' : machine_type.executors.all()
     }
 
     return HttpResponse(template.render(context, request))

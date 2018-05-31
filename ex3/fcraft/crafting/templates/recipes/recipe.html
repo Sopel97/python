@@ -1,5 +1,38 @@
+{% extends "base.html" %}
+
+{% block content %}
+
 <p> Name: {{ recipe.name }} </p>
 <p> Crafting time: {{ crafting_time_ticks }} ticks = {{ crafting_time_seconds }} s</p>
 {% if item.required_research %}
 <p> Required research: {{ item.required_research.name }} </p>
 {% endif %}
+
+{% if ingredients %}
+<p>Ingredients:</p>
+    <ul>
+    {% for ingredient in ingredients %}
+        <li><a href="{% url 'crafting:item' gameplay_mode_id ingredient.item.id %}">{{ ingredient.count }}x {{ ingredient.item.name }}</a></li>
+    {% endfor %}
+    </ul>
+{% endif %}
+
+{% if results %}
+<p>Results:</p>
+    <ul>
+    {% for result in results %}
+        <li><a href="{% url 'crafting:item' gameplay_mode_id result.item.id %}">{{ result.count }}x {{ result.item.name }}</a></li>
+    {% endfor %}
+    </ul>
+{% endif %}
+
+{% if executors %}
+<p>Executable in:</p>
+    <ul>
+    {% for executor in executors %}
+        <li><a href="{% url 'crafting:machine_type' gameplay_mode_id executor.machine_type.id %}">Tier {{ executor.machine_tier_required }} {{ executor.machine_type.name }}</a></li>
+    {% endfor %}
+    </ul>
+{% endif %}
+
+{% endblock %}

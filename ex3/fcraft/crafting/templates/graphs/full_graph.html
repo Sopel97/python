@@ -1,3 +1,7 @@
+{% extends "base.html" %}
+
+{% block content %}
+
 {% load static %}
 
 <!doctype html>
@@ -25,9 +29,6 @@
 </head>
 <body>
 
-<p>
-  There are a lot of options with arrows! They can also be combined with dashed lines.
-</p>
 <input type="text" id="search" placeholder="serach"/>
 <input type="button" onclick="run_search()" value="find and focus"/>
 <input type="number" id="desired_output" placeholder="desired output per second" style="margin-left:50px"/>
@@ -255,3 +256,5 @@
 
 </body>
 </html>
+
+{% endblock %}

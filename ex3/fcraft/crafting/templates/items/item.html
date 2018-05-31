@@ -1,10 +1,35 @@
+{% extends "base.html" %}
+
+{% block content %}
+
 <p> Name: {{ item.name }} </p>
 <p> Type: {{ item.get_state_display }} </p>
 {% if item.required_research %}
 <p> Required research: {{ item.required_research.name }} </p>
 {% endif %}
+
 {% if machine %}
 <p> Machine type: {{ machine.machine_type.name }} </p>
 <p> Crafting speed: {{ machine.crafting_speed }} </p>
 <p> Tier: {{ machine.tier }} </p>
 {% endif %}
+
+{% if ingredient_in_recipes %}
+<p>Used in Recipes:</p>
+    <ul>
+    {% for ingredient in ingredient_in_recipes %}
+        <li><a href="{% url 'crafting:recipe' gameplay_mode_id ingredient.recipe.id %}"> {{ ingredient.recipe.name }} </a></li>
+    {% endfor %}
+    </ul>
+{% endif %}
+
+{% if result_in_recipes %}
+<p>Made in recipes:</p>
+    <ul>
+    {% for result in result_in_recipes %}
+        <li><a href="{% url 'crafting:recipe' gameplay_mode_id result.recipe.id %}"> {{ result.recipe.name }} </a></li>
+    {% endfor %}
+    </ul>
+{% endif %}
+
+{% endblock %}

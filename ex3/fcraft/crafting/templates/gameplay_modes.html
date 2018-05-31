@@ -1,3 +1,7 @@
+{% extends "base.html" %}
+
+{% block content %}
+
 {% if gameplay_mode_list %}
     <ul>
     {% for gameplay_mode in gameplay_mode_list %}
@@ -7,3 +11,5 @@
 {% else %}
     <p>No items are available.</p>
 {% endif %}
+
+{% endblock %}

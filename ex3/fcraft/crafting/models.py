@@ -6,6 +6,9 @@ from django.contrib.auth.models import Group
 
 from smart_selects.db_fields import ChainedForeignKey
 
+def allEqual(iterable):
+   return iterable[1:] == iterable[:-1]
+
 class GameplayMode(models.Model):
     class Meta:
         verbose_name_plural = 'GameplayModes'
@@ -14,7 +17,6 @@ class GameplayMode(models.Model):
     description = models.CharField(max_length=4096, blank=True)
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True)
     editing_users = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='gameplay_modes', blank=True)
-    editing_groups = models.ManyToManyField(Group, related_name='gameplay_modes', blank=True)
 
     def __str__(self):
         return str(self.name)
@@ -56,8 +58,8 @@ class ResearchPrerequisite(models.Model):
     )
 
     def clean(self):
-        if self.research.gameplay_mode != self.prerequisite.gameplay_mode:
-            raise ValidationError(_('ResearchPrerequisite requires reserach and prerequisite to be from the same GameplayMode.'))
+        if not allEqual([self.research.gameplay_mode, self.gameplay_mode, self.prerequisite.gameplay_mode]):
+            raise ValidationError(_('GameplayMode mismatch in ResearchPrerequisite.'))
 
     def __str__(self):
         return 'Research {0} requires {1}'.format(str(self.research), str(self.prerequisite))
@@ -94,7 +96,7 @@ class Item(models.Model):
 
     def clean(self):
         if (self.required_research is not None) and (self.gameplay_mode != self.required_research.gameplay_mode):
-            raise ValidationError(_('Item requires required_research and this to be from the same GameplayMode.'))
+            raise ValidationError(_('GameplayMode mismatch in Item.'))
 
     def __str__(self):
         return str(self.name)
@@ -148,6 +150,16 @@ class FiniteResource(models.Model):
     mining_hardness = models.DecimalField(max_digits=6, decimal_places=3)
     mining_time = models.DecimalField(max_digits=6, decimal_places=3)
 
+    def clean(self):
+        if not allEqual([self.gameplay_mode, self.item.gameplay_mode, self.finite_resource_type.gameplay_mode]):
+            raise ValidationError(_('GameplayMode mismatch in FiniteResource.'))
+
+        if (self.mining_hardness <= 0):
+            raise ValidationError(_('Mining hardness must be positive.'))
+
+        if (self.mining_time <= 0):
+            raise ValidationError(_('Mining time must be positive.'))
+
     def __str__(self):
         return str(self.item.name)
 
@@ -176,6 +188,13 @@ class FiniteResourceCollectionIngredient(models.Model):
         on_delete=models.CASCADE
     )
     count = models.IntegerField()
+
+    def clean(self):
+        if not allEqual([self.gameplay_mode, self.resource.gameplay_mode, self.item.gameplay_mode]):
+            raise ValidationError(_('GameplayMode mismatch in FiniteResourceCollectionIngredient.'))
+
+        if (self.count <= 0):
+            raise ValidationError(_('Count must be positive.'))
 
     def __str__(self):
         return '{0} resource collection requires {1}x{2}'.format(str(self.resource), str(self.count), str(self.item))
@@ -211,6 +230,22 @@ class FiniteResourceCollector(models.Model):
     power_usage_kW = models.IntegerField(blank=False, default=0)
     tier = models.IntegerField(default=1, blank=False)
 
+    def clean(self):
+        if not allEqual([self.gameplay_mode, self.item.gameplay_mode, self.finite_resource_type.gameplay_mode]):
+            raise ValidationError(_('GameplayMode mismatch in FiniteResourceCollector.'))
+
+        if (self.mining_power <= 0):
+            raise ValidationError(_('Mining power must be positive.'))
+
+        if (self.mining_speed <= 0):
+            raise ValidationError(_('Mining speed must be positive.'))
+
+        if (self.power_usage_kW < 0):
+            raise ValidationError(_('Power usage must be nonnegative.'))
+
+        if (self.tier < 0):
+            raise ValidationError(_('Tier must be nonnegative.'))
+
     def __str__(self):
         return str(self.item)
 
@@ -245,8 +280,17 @@ class Machine(models.Model):
     tier = models.IntegerField(default=1, blank=False)
 
     def clean(self):
-        if self.item.gameplay_mode != self.item.gameplay_mode:
-            raise ValidationError(_('Machine requires item and machine_type to be from the same GameplayMode.'))
+        if not allEqual([self.item.gameplay_mode, self.gameplay_mode, self.machine_type.gameplay_mode]):
+            raise ValidationError(_('GameplayMode mismatch in Machine.'))
+
+        if (self.crafting_speed <= 0):
+            raise ValidationError(_('Crafting speed must be positive.'))
+
+        if (self.power_usage_kW < 0):
+            raise ValidationError(_('Power usage must be nonnegative.'))
+
+        if (self.tier < 0):
+            raise ValidationError(_('Tier must be nonnegative.'))
 
     def __str__(self):
         return str(self.item)
@@ -273,7 +317,11 @@ class Recipe(models.Model):
     )
 
     def clean(self):
-        pass
+        if (self.required_research is not None) and (self.gameplay_mode != self.required_research.gameplay_mode):
+            raise ValidationError(_('GameplayMode mismatch in Recipe.'))
+
+        if (self.crafting_time_ticks <= 0):
+            raise ValidationError(_('Crafting time must be positive.'))
 
     def __str__(self):
         return str(self.name)
@@ -306,8 +354,11 @@ class RecipeExecutor(models.Model):
     machine_tier_required = models.IntegerField(default=1, blank=False)
 
     def clean(self):
-        if self.recipe.gameplay_mode != self.machine_type.gameplay_mode:
-            raise ValidationError(_('RecipeExecutor requires recipe and machine_type to be from the same GameplayMode.'))
+        if not allEqual([self.gameplay_mode, self.recipe.gameplay_mode, self.machine_type.gameplay_mode]):
+            raise ValidationError(_('GameplayMode mismatch in RecipeExecutor.'))
+
+        if (self.machine_tier_required < 0):
+            raise ValidationError(_('Required machine tier must be nonnegative.'))
 
     def __str__(self):
         return 'Machine {0} executes recipe {1}'.format(str(self.machine_type), str(self.recipe))
@@ -334,13 +385,17 @@ class RecipeIngredient(models.Model):
         show_all=False,
         auto_choose=False,
         sort=True,
+        related_name='recipe_ingredients',
         on_delete=models.CASCADE
     )
     count = models.IntegerField()
 
     def clean(self):
-        if self.recipe.gameplay_mode != self.item.gameplay_mode:
-            raise ValidationError(_('RecipeIngredient requires recipe and item to be from the same GameplayMode.'))
+        if not allEqual([self.gameplay_mode, self.recipe.gameplay_mode, self.item.gameplay_mode]):
+            raise ValidationError(_('GameplayMode mismatch in RecipeIngredient.'))
+
+        if (self.count <= 0):
+            raise ValidationError(_('Count must be positive.'))
 
     def __str__(self):
         return 'Recipe {0} requires {1}x{2}'.format(str(self.recipe), str(self.count), str(self.item))
@@ -373,8 +428,11 @@ class RecipeResult(models.Model):
     count = models.IntegerField()
 
     def clean(self):
-        if self.recipe.gameplay_mode != self.item.gameplay_mode:
-            raise ValidationError(_('RecipeResult requires recipe and item to be from the same GameplayMode.'))
+        if not allEqual([self.gameplay_mode, self.recipe.gameplay_mode, self.item.gameplay_mode]):
+            raise ValidationError(_('GameplayMode mismatch in RecipeResult.'))
+
+        if (self.count <= 0):
+            raise ValidationError(_('Count must be positive.'))
 
     def __str__(self):
         return 'Recipe {0} produces {1}x{2}'.format(str(self.recipe), str(self.count), str(self.item))

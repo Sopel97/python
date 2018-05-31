@@ -1,3 +1,7 @@
+{% extends "base.html" %}
+
+{% block content %}
+
 {% if machine_type_list %}
     <ul>
     {% for machine_type in machine_type_list %}
@@ -5,3 +9,5 @@
     {% endfor %}
     </ul>
 {% endif %}
+
+{% endblock %}

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="style.css" />
+    <title>{% block title %}Fcraft{% endblock %}</title>
+</head>
+
+<body>
+    {% block header %}
+    <!-- Header -->
+    <div id="header">
+        <div id="branding">
+        {% block branding %}{% endblock %}
+        </div>
+
+        {% if user.is_active %}
+        <div id="user-tools">
+
+            Hi,
+
+            <strong>{% filter force_escape %}{% firstof user.first_name user.username %}{% endfilter %}</strong>.
+            {% block userlinks %}
+                <a href="{% url 'password_change' %}">Change password</a> /
+                <a href="{% url 'logout' %}">Log out</a>
+            {% endblock %}
+        </div>
+        {% endif %}
+        {% block nav-global %}{% endblock %}
+    </div>
+    <div>
+        {% if url %}
+        <a href="{{ url }}">Back</a>
+        {% endif %}
+    </div>
+    <!-- END Header -->
+
+    <hr/>
+    {% endblock %}
+
+    <div id="sidebar">
+        {% block sidebar %}
+        <ul>
+        </ul>
+        {% endblock %}
+    </div>
+
+    <div id="content">
+        {% block content %}{% endblock %}
+    </div>
+</body>
+</html>

@@ -1,3 +1,7 @@
+{% extends "base.html" %}
+
+{% block content %}
+
 <p> Name: {{ research.name }} </p>
 <p> Unlocked items: </p>
 {% if unlocked_item_list %}
@@ -7,3 +11,5 @@
     {% endfor %}
     </ul>
 {% endif %}
+
+{% endblock %}

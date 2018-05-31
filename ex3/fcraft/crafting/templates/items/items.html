@@ -1,3 +1,7 @@
+{% extends "base.html" %}
+
+{% block content %}
+
 {% if item_list %}
     <ul>
     {% for item in item_list %}
@@ -7,3 +11,5 @@
 {% else %}
     <p>No items are available.</p>
 {% endif %}
+
+{% endblock %}
